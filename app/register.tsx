@@ -38,7 +38,6 @@ export default function Register() {
     { label: 'coordinator', value: 'coordinator' },
   ]);
 
-  const { width } = useWindowDimensions();
   const isTablet = screenSize.isTablet;
 
   useEffect(() => {
@@ -51,40 +50,49 @@ export default function Register() {
 
   return (
     <ScrollView
+      style={tw`bg-white`}
       contentContainerStyle={[
-        tw`flex-grow bg-black`,
+        tw`bg-[#f1f5f9]`,
         {
           paddingHorizontal: moderateScale(16),
-          paddingTop: verticalScale(isTablet ? 40 : 64),
-          paddingBottom: verticalScale(isTablet ? 24 : 48),
+          paddingBottom: verticalScale(32),
+          minHeight: '100%',
+          justifyContent: 'center', // ✅ vertical centering
         },
       ]}
     >
-      <View style={{ maxWidth: 480, alignSelf: 'center', width: '100%' }}>
-        <EmberLogo title="Register" />
+      <View style={{ width: '100%', maxWidth: 480, alignSelf: 'center' }}>
+        <View style={{ alignItems: 'center', marginBottom: 12 }}>
+          <EmberLogo />
+          <Text style={tw`text-2xl font-bold text-orange-500 mt-2`}>
+            Register
+          </Text>
+        </View>
 
-        <View style={{ marginTop: verticalScale(isTablet ? 24 : 32) }}>
+        <View style={{ marginTop: 8 }}>
           {/* Name */}
-          <View style={{ marginBottom: verticalScale(16) }}>
+          <View style={{ marginBottom: 12 }}>
             <FormInput
               value={form.name}
               onChangeText={(val) => setForm({ ...form, name: val })}
               placeholder="Name"
+              theme="light"
             />
           </View>
 
           {/* Email */}
-          <View style={{ marginBottom: verticalScale(16) }}>
+          <View style={{ marginBottom: 12 }}>
             <FormInput
               value={form.email}
               onChangeText={(val) => setForm({ ...form, email: val })}
               placeholder="Email"
               keyboardType="email-address"
+              theme="light"
             />
           </View>
 
           {/* Password */}
-          <View style={{ marginBottom: verticalScale(16) }}>
+          <View style={{ marginBottom: 12 }}>
             <FormInput
               value={form.password}
               onChangeText={(val) => setForm({ ...form, password: val })}
@@ -93,11 +101,12 @@ export default function Register() {
               showToggle
               showPassword={showPassword}
               setShowPassword={setShowPassword}
+              theme="light"
             />
           </View>
 
           {/* Role Dropdown */}
-          <View style={{ marginBottom: verticalScale(16), zIndex: 1000 }}>
+          <View style={{ marginBottom: 12, zIndex: 1000 }}>
             <DropDownPicker
               open={open}
               value={role}
@@ -106,43 +115,43 @@ export default function Register() {
               setValue={setRole}
               setItems={setRoleItems}
               placeholder="Select Role"
-              placeholderStyle={{ color: '#aaa' }}
+              placeholderStyle={{ color: '#555' }}
               style={{
-                backgroundColor: '#111827',
+                backgroundColor: '#f3f4f6',
                 borderColor: '#f97316',
                 borderRadius: 10,
                 height: 48,
               }}
-              textStyle={{ color: '#fff', fontSize: 14 }}
+              textStyle={{ color: '#111827', fontSize: 14 }}
               dropDownContainerStyle={{
-                backgroundColor: '#111827',
+                backgroundColor: '#f3f4f6',
                 borderColor: '#f97316',
               }}
               ArrowUpIconComponent={() => (
-                <Text style={tw`text-white`}>▲</Text>
+                <Text style={tw`text-black`}>▲</Text>
               )}
               ArrowDownIconComponent={() => (
-                <Text style={tw`text-white`}>▼</Text>
+                <Text style={tw`text-black`}>▼</Text>
               )}
               showArrowIcon
             />
           </View>
 
           {/* Phone Number */}
-          <View style={{ marginBottom: verticalScale(16) }}>
+          <View style={{ marginBottom: 16 }}>
             <TextInput
               style={{
                 borderWidth: 1,
                 borderColor: '#f97316',
-                backgroundColor: '#111827',
-                color: '#fff',
+                backgroundColor: '#f3f4f6',
+                color: '#111827',
                 borderRadius: 10,
                 paddingVertical: 10,
                 paddingHorizontal: 14,
                 fontSize: 14,
               }}
               placeholder="Phone Number (Optional)"
-              placeholderTextColor="#aaa"
+              placeholderTextColor="#888"
               keyboardType="phone-pad"
               value={form.phone_number}
               onChangeText={(val) =>
@@ -158,9 +167,9 @@ export default function Register() {
               backgroundColor: '#f97316',
               borderRadius: 10,
               paddingVertical: 14,
-              marginBottom: verticalScale(isTablet ? 24 : 32),
+              marginBottom: 20,
               shadowColor: '#000',
-              shadowOpacity: 0.2,
+              shadowOpacity: 0.1,
               shadowRadius: 4,
               shadowOffset: { width: 0, height: 2 },
             }}

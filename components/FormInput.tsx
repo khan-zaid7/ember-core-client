@@ -1,7 +1,12 @@
-import { View, TextInput, Pressable, KeyboardTypeOptions } from 'react-native';
+import React from 'react';
+import {
+  View,
+  TextInput,
+  Pressable,
+  KeyboardTypeOptions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
-import React from 'react';
 
 interface FormInputProps {
   value: string;
@@ -12,6 +17,7 @@ interface FormInputProps {
   showPassword?: boolean;
   setShowPassword?: (val: boolean) => void;
   keyboardType?: KeyboardTypeOptions;
+  theme?: 'light' | 'dark';
 }
 
 export const FormInput: React.FC<FormInputProps> = ({
@@ -23,18 +29,27 @@ export const FormInput: React.FC<FormInputProps> = ({
   showPassword,
   setShowPassword,
   keyboardType = 'default',
+  theme = 'dark',
 }) => {
+  const isLight = theme === 'light';
+
   return (
     <View style={tw`relative`}>
       <TextInput
-        style={tw`border border-orange-500 bg-[#111827] text-white rounded-xl px-4 py-3.5 pr-12`}
+        style={tw.style(
+          'rounded-xl px-4 py-3.5 pr-12 border',
+          isLight
+            ? 'bg-gray-100 text-black border-orange-500'
+            : 'bg-[#111827] text-white border-orange-500'
+        )}
         placeholder={placeholder}
-        placeholderTextColor="#aaa"
+        placeholderTextColor={isLight ? '#555' : '#aaa'}
         secureTextEntry={showToggle ? !showPassword : secureTextEntry}
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType}
       />
+
       {showToggle && setShowPassword && (
         <Pressable
           onPress={() => setShowPassword(!showPassword)}
@@ -43,7 +58,7 @@ export const FormInput: React.FC<FormInputProps> = ({
           <Ionicons
             name={showPassword ? 'eye-off-outline' : 'eye-outline'}
             size={22}
-            color="#aaa"
+            color={isLight ? '#333' : '#aaa'}
           />
         </Pressable>
       )}
