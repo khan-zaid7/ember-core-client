@@ -1,19 +1,18 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import tw from 'twrnc';
 
 import EmberLogo from '../components/EmberLogo';
 import { FormInput } from '../components/FormInput';
-import SuccessAlert from '../components/SuccessAlert';
 import LoadingSpinner from '../components/LoadingSpinner';
+import SuccessAlert from '../components/SuccessAlert';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -72,8 +71,7 @@ export default function ForgotPassword() {
             style={tw.style(
               `py-3 rounded-xl mt-6`,
               {
-                backgroundColor:
-                  loading || !validateEmail(email) ? 'gray' : '#f97316',
+                backgroundColor: '#f97316',
               }
             )}
           >
