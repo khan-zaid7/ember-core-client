@@ -1,10 +1,10 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import tw from 'twrnc';
@@ -13,6 +13,7 @@ import EmberLogo from '../components/EmberLogo';
 import { FormInput } from '../components/FormInput';
 import LoadingSpinner from '../components/LoadingSpinner';
 import SuccessAlert from '../components/SuccessAlert';
+import api from '@/src/utils/axiosConfig';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -33,12 +34,26 @@ export default function ForgotPassword() {
 
     setLoading(true);
     setError('');
+    setSuccess(false);
 
-    // Mock API call
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const response = await api.post('/forgot-password', { email });
+
+      console.log('✅ OTP sent for email:', email);
       setSuccess(true);
-    }, 1500);
+
+      // Optional: navigate after delay
+      setTimeout(() => {
+        router.push({ pathname: '/verify-otp', params: { email } });
+      }, 1500);
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || 'Something went wrong while sending OTP.';
+      setError(message);
+      console.log('❌ OTP error:', message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -95,7 +110,7 @@ export default function ForgotPassword() {
 
           {success && (
             <SuccessAlert
-              message="If your email is registered, a recovery link has been sent."
+              message="If your email is registered, a recovery link (OTP) has been sent."
               onDismiss={() => setSuccess(false)}
             />
           )}
