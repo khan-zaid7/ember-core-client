@@ -47,10 +47,10 @@ export default function ForgotPassword() {
         <View style={{ width: '100%', maxWidth: 480, alignSelf: 'center' }}>
           <EmberLogo />
 
-          <Text style={tw`text-3xl font-bold text-orange-500 mt-10 mb-2`}>
+          <Text style={tw`text-base font-bold text-orange-500 text-center mt-10 mb-2`}>
             Forgot Password
           </Text>
-          <Text style={tw`text-base text-gray-600 mb-8`}>
+          <Text style={tw`text-base text-center text-gray-600 mb-8`}>
             Enter your email and we’ll send you a recovery link.
           </Text>
 
