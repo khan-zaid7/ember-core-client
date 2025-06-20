@@ -23,6 +23,7 @@ import {
 } from '../src/utils/reponsive';
 import { useRouter } from 'expo-router';
 import api from '@/src/utils/axiosConfig';
+import React from 'react';
 
 export default function Register() {
   const router = useRouter();
