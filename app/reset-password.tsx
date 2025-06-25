@@ -1,14 +1,14 @@
 // app/reset-password.tsx
-import { useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
+import { Alert, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import tw from 'twrnc';
 
+import api from '@/src/utils/axiosConfig';
 import EmberLogo from '../components/EmberLogo';
 import { FormInput } from '../components/FormInput';
 import LoadingSpinner from '../components/LoadingSpinner';
-import api from '@/src/utils/axiosConfig';
 
 
 export default function ResetPassword() {
@@ -58,48 +58,83 @@ export default function ResetPassword() {
   };
 
   return (
-    <SafeAreaView style={tw`flex-1 bg-[#f1f5f9]`}>
-      <ScrollView contentContainerStyle={tw`flex-grow px-6 pt-12`}>
-        <View style={{ width: '100%', maxWidth: 480, alignSelf: 'center' }}>
-          <EmberLogo />
-          <Text style={tw`text-xl font-bold text-orange-500 text-center mt-10 mb-2`}>
-            Set New Password
-          </Text>
-
-          <FormInput
-            placeholder="New Password"
-            value={newPassword}
-            onChangeText={setNewPassword}
-            secureTextEntry={!showPassword}
-            showToggle
-            showPassword={showPassword}
-            setShowPassword={setShowPassword}
-            theme="light"
-          />
-
-          <FormInput
-            placeholder="Confirm Password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry={!showPassword}
-            theme="light"
-          />
-
-          <TouchableOpacity
-            onPress={handleResetPassword}
-            disabled={loading}
-            style={tw`bg-orange-500 rounded-xl py-4 mt-6`}
-          >
-            {loading ? (
-              <LoadingSpinner />
-            ) : (
-              <Text style={tw`text-white text-center font-bold text-lg`}>
-                Update Password
+    <LinearGradient
+      colors={["#f97316", "#fde68a"]}
+      start={{ x: 0, y: 1 }}
+      end={{ x: 1, y: 0 }}
+      style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+    >
+      <SafeAreaView style={{ flex: 1, width: '100%', justifyContent: 'center', alignItems: 'center', paddingTop: 16 }}>
+        <View style={{ width: '100%', maxWidth: 420, alignItems: 'center', paddingHorizontal: 8, margin: 12 }}>
+          <View style={{
+            backgroundColor: '#fff',
+            borderRadius: 18,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.10,
+            shadowRadius: 8,
+            elevation: 4,
+            paddingHorizontal: 24,
+            paddingVertical: 6,
+            width: '100%',
+            minWidth: 0,
+          }}>
+            <View style={{ alignItems: 'center', marginBottom: 6 }}>
+              <EmberLogo />
+              <Text style={{ fontSize: 32, fontWeight: '800', color: '#f97316', marginTop: 2, textAlign: 'center' }}>
+                Set New Password
               </Text>
-            )}
-          </TouchableOpacity>
+            </View>
+            <View style={{ marginBottom: 4 }}>
+              <FormInput
+                placeholder="New Password"
+                value={newPassword}
+                onChangeText={setNewPassword}
+                secureTextEntry={!showPassword}
+                showToggle
+                showPassword={showPassword}
+                setShowPassword={setShowPassword}
+                theme="light"
+              />
+            </View>
+            <View style={{ marginBottom: 8 }}>
+              <FormInput
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showPassword}
+                theme="light"
+              />
+            </View>
+            <TouchableOpacity
+              onPress={handleResetPassword}
+              disabled={loading}
+              style={{
+                backgroundColor: '#f97316',
+                borderRadius: 10,
+                height: 48,
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginTop: 8,
+                marginBottom: 0,
+                opacity: loading ? 0.7 : 1,
+                shadowColor: '#000',
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                shadowOffset: { width: 0, height: 2 },
+              }}
+            >
+              {loading ? (
+                <LoadingSpinner />
+              ) : (
+                <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '600', fontSize: 16 }}>
+                  Update Password
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }

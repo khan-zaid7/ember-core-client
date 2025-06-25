@@ -1,25 +1,25 @@
-import { useState, useEffect } from 'react';
-import {
-  ScrollView,
-  TouchableOpacity,
-  Text,
-  View,
-  useWindowDimensions,
-  Alert,
-} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Link, router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+  Alert,
+  Text,
+  TouchableOpacity,
+  View,
+  useWindowDimensions
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import tw from 'twrnc';
 
-import EmberLogo from '../components/EmberLogo';
-import { FormInput } from '../components/FormInput';
-import AuthFooter from '../components/AuthFooter';
-import SuccessAlert from '../components/SuccessAlert';
-import { moderateScale, verticalScale } from '../src/utils/reponsive';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import api from '@/src/utils/axiosConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import LoadingSpinner from '@/components/LoadingSpinner';
 import React from 'react';
+import AuthFooter from '../components/AuthFooter';
+import EmberLogo from '../components/EmberLogo';
+import { FormInput } from '../components/FormInput';
+import SuccessAlert from '../components/SuccessAlert';
+import { verticalScale } from '../src/utils/reponsive';
 
 export default function Login() {
   const [form, setForm] = useState({
@@ -118,95 +118,109 @@ export default function Login() {
   return (
     <>
       {loading && <LoadingSpinner />}
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#f1f5f9' }}>
-        <ScrollView
-          style={tw`bg-white`}
-          contentContainerStyle={[
-            tw`bg-[#f1f5f9]`,
-            {
-              paddingHorizontal: moderateScale(16),
-              paddingBottom: verticalScale(32),
-              minHeight: '100%',
-              justifyContent: 'center',
-            },
-          ]}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={{ width: '100%', maxWidth: 480, alignSelf: 'center' }}>
-            {showSuccess && (
-              <View style={{ marginBottom: verticalScale(16) }}>
-                <SuccessAlert message="Registration successful. Please log in." />
+      <LinearGradient
+        colors={["#f97316", "#fde68a"]}
+        start={{ x: 0, y: 1 }}
+        end={{ x: 1, y: 0 }}
+        style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+      >
+        <SafeAreaView style={{ flex: 1, width: '100%', justifyContent: 'center', alignItems: 'center', paddingTop: 16 }}>
+          <View style={{ width: '100%', maxWidth: 420, alignItems: 'center', paddingHorizontal: 8, margin: 12 }}>
+            <View style={{
+              backgroundColor: '#fff',
+              borderRadius: 18,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.10,
+              shadowRadius: 8,
+              elevation: 4,
+              paddingHorizontal: 24,
+              paddingVertical: 6,
+              width: '100%',
+              minWidth: 0,
+            }}>
+              {showSuccess && (
+                <View style={{ marginBottom: verticalScale(8) }}>
+                  <SuccessAlert message="Registration successful. Please log in." />
+                </View>
+              )}
+              <View style={{ alignItems: 'center', marginBottom: 6 }}>
+                <EmberLogo />
+                <Text style={{ fontSize: 32, fontWeight: '800', color: '#f97316', marginTop: 2 }}>Login</Text>
               </View>
-            )}
-
-            <View style={{ alignItems: 'center', marginBottom: 12 }}>
-              <EmberLogo />
-              <Text style={tw`text-2xl font-bold text-orange-500 mt-2`}>Login</Text>
-            </View>
-
-            <View style={{ marginTop: 8 }}>
-              <View style={{ marginBottom: 12 }}>
-                <FormInput
-                  value={form.email}
-                  onChangeText={(text) => handleChange('email', text)}
-                  placeholder="Email"
-                  keyboardType="email-address"
-                  theme="light"
-                />
-              </View>
-
-              <View style={{ marginBottom: 12 }}>
-                <FormInput
-                  value={form.password}
-                  onChangeText={(text) => handleChange('password', text)}
-                  placeholder="Password"
-                  secureTextEntry
-                  showToggle
-                  showPassword={showPassword}
-                  setShowPassword={setShowPassword}
-                  theme="light"
-                />
-              </View>
-
-              <View style={{ marginBottom: 20 }}>
-                <Link
-                  href="/forgot-password"
-                  style={tw`text-orange-500 text-right text-sm`}
-                >
-                  Forgot Password?
-                </Link>
-              </View>
-
-              <TouchableOpacity
-                onPress={handleLogin}
-                style={{
-                  backgroundColor: '#f97316',
-                  borderRadius: 10,
-                  paddingVertical: 14,
-                  marginBottom: 20,
-                  shadowColor: '#000',
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  shadowOffset: { width: 0, height: 2 },
-                }}
-              >
-                <Text
+              <View style={{ marginTop: 8 }}>
+                <View style={{ marginBottom: 4 }}>
+                  <FormInput
+                    value={form.email}
+                    onChangeText={(text) => handleChange('email', text)}
+                    placeholder="Email"
+                    keyboardType="email-address"
+                    theme="light"
+                  />
+                  <View style={{ minHeight: 18, marginTop: 2 }}>
+                    <Text style={{ color: '#ef4444', fontSize: 12 }}>
+                      {errors.email || ' '}
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ marginBottom: 4 }}>
+                  <FormInput
+                    value={form.password}
+                    onChangeText={(text) => handleChange('password', text)}
+                    placeholder="Password"
+                    secureTextEntry
+                    showToggle
+                    showPassword={showPassword}
+                    setShowPassword={setShowPassword}
+                    theme="light"
+                  />
+                  <View style={{ minHeight: 18, marginTop: 2 }}>
+                    <Text style={{ color: '#ef4444', fontSize: 12 }}>
+                      {errors.password || ' '}
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ marginBottom: 12 }}>
+                  <Link
+                    href="/forgot-password"
+                    style={tw`text-orange-500 text-right text-sm`}
+                  >
+                    Forgot Password?
+                  </Link>
+                </View>
+                <TouchableOpacity
+                  onPress={handleLogin}
                   style={{
-                    color: 'white',
-                    textAlign: 'center',
-                    fontWeight: 'bold',
-                    fontSize: 16,
+                    backgroundColor: '#f97316',
+                    borderRadius: 10,
+                    height: 48,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginTop: 2,
+                    marginBottom: 0,
+                    shadowColor: '#000',
+                    shadowOpacity: 0.1,
+                    shadowRadius: 4,
+                    shadowOffset: { width: 0, height: 2 },
                   }}
                 >
-                  Login
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    style={{
+                      color: 'white',
+                      textAlign: 'center',
+                      fontWeight: 'bold',
+                      fontSize: 16,
+                    }}
+                  >
+                    Login
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <AuthFooter label="Don't have an account?" link="/register" />
             </View>
-
-            <AuthFooter label="Don’t have an account?" link="/register" />
           </View>
-        </ScrollView>
-      </SafeAreaView>
+        </SafeAreaView>
+      </LinearGradient>
     </>
   );
 }
