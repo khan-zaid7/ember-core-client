@@ -4,8 +4,8 @@ import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DashboardCard from '../components/DashboardCard';
-import DashboardHeader from '../components/DashboardHeader';
-import DashboardFooter from '../components/DashboardFooter';
+import DashboardHeader from '../components/Header';
+import DashboardFooter from '../components/Footer';
 
 // Mock user data
 const user = {
