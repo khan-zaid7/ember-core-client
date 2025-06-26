@@ -1,11 +1,11 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  View,
-  TextInput,
-  Pressable,
-  KeyboardTypeOptions,
+    KeyboardTypeOptions,
+    Pressable,
+    TextInput,
+    View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 
 interface FormInputProps {
@@ -18,6 +18,7 @@ interface FormInputProps {
   setShowPassword?: (val: boolean) => void;
   keyboardType?: KeyboardTypeOptions;
   theme?: 'light' | 'dark';
+  editable?: boolean;
 }
 
 export const FormInput: React.FC<FormInputProps> = ({
@@ -30,6 +31,7 @@ export const FormInput: React.FC<FormInputProps> = ({
   setShowPassword,
   keyboardType = 'default',
   theme = 'dark',
+  editable = true,
 }) => {
   const isLight = theme === 'light';
 
@@ -39,7 +41,7 @@ export const FormInput: React.FC<FormInputProps> = ({
         style={tw.style(
           'rounded-xl px-4 py-3.5 pr-12 border',
           isLight
-            ? 'bg-gray-100 text-black border-orange-500'
+            ? 'bg-white text-black border-gray-300'
             : 'bg-[#111827] text-white border-orange-500'
         )}
         placeholder={placeholder}
@@ -48,6 +50,7 @@ export const FormInput: React.FC<FormInputProps> = ({
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType}
+        editable={editable}
       />
 
       {showToggle && setShowPassword && (

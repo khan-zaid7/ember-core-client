@@ -1,29 +1,27 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import {
+  Alert,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-  useWindowDimensions,
-  Alert,
+  View
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import tw from 'twrnc';
 
-import EmberLogo from '../components/EmberLogo';
 import AuthFooter from '../components/AuthFooter';
+import EmberLogo from '../components/EmberLogo';
 import { FormInput } from '../components/FormInput';
 import LoadingSpinner from '../components/LoadingSpinner';
 
-import {
-  screenSize,
-  moderateScale,
-  verticalScale,
-} from '../src/utils/reponsive';
-import { useRouter } from 'expo-router';
 import api from '@/src/utils/axiosConfig';
+import { useRouter } from 'expo-router';
 import React from 'react';
+import {
+  screenSize
+} from '../src/utils/reponsive';
 
 export default function Register() {
   const router = useRouter();
@@ -134,154 +132,171 @@ export default function Register() {
     <>
       {loading && <LoadingSpinner />}
 
-      <KeyboardAwareScrollView
-        style={tw`bg-white`}
-        contentContainerStyle={[
-          tw`bg-[#f1f5f9]`,
-          {
-            paddingHorizontal: moderateScale(16),
-            paddingBottom: verticalScale(32),
-            minHeight: '100%',
-            justifyContent: 'center',
-          },
-        ]}
-        enableOnAndroid={true}
-        keyboardShouldPersistTaps="handled"
+      <LinearGradient
+        colors={["#f97316", "#fde68a"]}
+        start={{ x: 0, y: 1 }}
+        end={{ x: 1, y: 0 }}
+        style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
       >
-        <View style={{ width: '100%', maxWidth: 480, alignSelf: 'center' }}>
-          <View style={{ alignItems: 'center', marginBottom: 12 }}>
-            <EmberLogo />
-            <Text style={tw`text-2xl font-bold text-orange-500 mt-2`}>
-              Register
-            </Text>
+        <KeyboardAwareScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', minHeight: '100%' }}
+          enableOnAndroid={true}
+          keyboardShouldPersistTaps="handled"
+          style={{ width: '100%' }}
+        >
+          <View style={{ width: '100%', maxWidth: 420, alignItems: 'center', paddingHorizontal: 8, margin: 12 }}>
+            <View style={{
+              backgroundColor: '#fff',
+              borderRadius: 18,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.10,
+              shadowRadius: 8,
+              elevation: 4,
+              paddingHorizontal: 24,
+              paddingVertical: 6,
+              width: '100%',
+              minWidth: 0,
+            }}>
+              <View style={{ alignItems: 'center', marginBottom: 6 }}>
+                <EmberLogo />
+                <Text style={{ fontSize: 32, fontWeight: '800', color: '#f97316', marginTop: 2 }}>Register</Text>
+              </View>
+              <View style={{ marginTop: 8 }}>
+                {/* Name */}
+                <View style={{ marginBottom: 4 }}>
+                  <FormInput
+                    value={form.name}
+                    onChangeText={(val) => handleChange('name', val)}
+                    placeholder="Name"
+                    theme="light"
+                  />
+                  <View style={{ minHeight: 18, marginTop: 2 }}>
+                    <Text style={{ color: '#ef4444', fontSize: 12 }}>
+                      {errors.name || ' '}
+                    </Text>
+                  </View>
+                </View>
+                {/* Email */}
+                <View style={{ marginBottom: 4 }}>
+                  <FormInput
+                    value={form.email}
+                    onChangeText={(val) => handleChange('email', val)}
+                    placeholder="Email"
+                    keyboardType="email-address"
+                    theme="light"
+                  />
+                  <View style={{ minHeight: 18, marginTop: 2 }}>
+                    <Text style={{ color: '#ef4444', fontSize: 12 }}>
+                      {errors.email || ' '}
+                    </Text>
+                  </View>
+                </View>
+                {/* Password */}
+                <View style={{ marginBottom: 4 }}>
+                  <FormInput
+                    value={form.password}
+                    onChangeText={(val) => handleChange('password', val)}
+                    placeholder="Password"
+                    secureTextEntry
+                    showToggle
+                    showPassword={showPassword}
+                    setShowPassword={setShowPassword}
+                    theme="light"
+                  />
+                  <View style={{ minHeight: 18, marginTop: 2 }}>
+                    <Text style={{ color: '#ef4444', fontSize: 12 }}>
+                      {errors.password || ' '}
+                    </Text>
+                  </View>
+                </View>
+                {/* Role Dropdown */}
+                <View style={{ zIndex: 1000, marginBottom: 4 }}>
+                  <DropDownPicker
+                    open={open}
+                    value={role}
+                    items={roleItems}
+                    setOpen={setOpen}
+                    setValue={setRole}
+                    setItems={setRoleItems}
+                    placeholder="Select Role"
+                    placeholderStyle={{ color: '#555' }}
+                    style={{
+                      backgroundColor: '#f3f4f6',
+                      borderColor: '#f97316',
+                      borderRadius: 10,
+                      height: 48,
+                    }}
+                    textStyle={{ color: '#111827', fontSize: 14 }}
+                    dropDownContainerStyle={{
+                      backgroundColor: '#f3f4f6',
+                      borderColor: '#f97316',
+                    }}
+                    ArrowUpIconComponent={() => <Text style={tw`text-black`}>▲</Text>}
+                    ArrowDownIconComponent={() => <Text style={tw`text-black`}>▼</Text>}
+                    showArrowIcon
+                    listMode="SCROLLVIEW"
+                  />
+                </View>
+                {/* Phone Number */}
+                <View style={{ marginBottom: 8 }}>
+                  <TextInput
+                    style={{
+                      borderWidth: 1,
+                      borderColor: '#f97316',
+                      backgroundColor: '#f3f4f6',
+                      color: '#111827',
+                      borderRadius: 10,
+                      paddingVertical: 10,
+                      paddingHorizontal: 14,
+                      fontSize: 14,
+                    }}
+                    placeholder="Phone Number (Optional)"
+                    placeholderTextColor="#888"
+                    keyboardType="phone-pad"
+                    value={form.phone_number}
+                    onChangeText={(val) => handleChange('phone_number', val)}
+                  />
+                  <View style={{ minHeight: 18, marginTop: 2 }}>
+                    <Text style={{ color: '#ef4444', fontSize: 12 }}>
+                      {errors.phone_number || ' '}
+                    </Text>
+                  </View>
+                </View>
+                {/* Sign Up Button */}
+                <TouchableOpacity
+                  onPress={handleRegister}
+                  style={{
+                    backgroundColor: '#f97316',
+                    borderRadius: 10,
+                    height: 48,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginTop: 2,
+                    marginBottom: 0,
+                    shadowColor: '#000',
+                    shadowOpacity: 0.1,
+                    shadowRadius: 4,
+                    shadowOffset: { width: 0, height: 2 },
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: 'white',
+                      textAlign: 'center',
+                      fontWeight: 'bold',
+                      fontSize: 16,
+                    }}
+                  >
+                    Sign Up
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <AuthFooter label="Already have an account?" link="/login" />
+            </View>
           </View>
-
-          <View style={{ marginTop: 8 }}>
-            {/* Name */}
-            <View style={{ marginBottom: 12 }}>
-              <FormInput
-                value={form.name}
-                onChangeText={(val) => handleChange('name', val)}
-                placeholder="Name"
-                theme="light"
-              />
-              {errors.name ? <Text style={tw`text-red-500 text-sm ml-1`}>{errors.name}</Text> : null}
-            </View>
-
-            {/* Email */}
-            <View style={{ marginBottom: 12 }}>
-              <FormInput
-                value={form.email}
-                onChangeText={(val) => handleChange('email', val)}
-                placeholder="Email"
-                keyboardType="email-address"
-                theme="light"
-              />
-              {errors.email ? <Text style={tw`text-red-500 text-sm ml-1`}>{errors.email}</Text> : null}
-            </View>
-
-            {/* Password */}
-            <View style={{ marginBottom: 12 }}>
-              <FormInput
-                value={form.password}
-                onChangeText={(val) => handleChange('password', val)}
-                placeholder="Password"
-                secureTextEntry
-                showToggle
-                showPassword={showPassword}
-                setShowPassword={setShowPassword}
-                theme="light"
-              />
-              {errors.password ? (
-                <Text style={tw`text-red-500 text-sm ml-1`}>{errors.password}</Text>
-              ) : null}
-            </View>
-
-            {/* Role Dropdown */}
-            <View style={{ zIndex: 1000, marginBottom: 12 }}>
-              <DropDownPicker
-                open={open}
-                value={role}
-                items={roleItems}
-                setOpen={setOpen}
-                setValue={setRole}
-                setItems={setRoleItems}
-                placeholder="Select Role"
-                placeholderStyle={{ color: '#555' }}
-                style={{
-                  backgroundColor: '#f3f4f6',
-                  borderColor: '#f97316',
-                  borderRadius: 10,
-                  height: 48,
-                }}
-                textStyle={{ color: '#111827', fontSize: 14 }}
-                dropDownContainerStyle={{
-                  backgroundColor: '#f3f4f6',
-                  borderColor: '#f97316',
-                }}
-                ArrowUpIconComponent={() => <Text style={tw`text-black`}>▲</Text>}
-                ArrowDownIconComponent={() => <Text style={tw`text-black`}>▼</Text>}
-                showArrowIcon
-                listMode="SCROLLVIEW" // ✅ THIS LINE fixes the FlatList warning
-              />
-
-            </View>
-
-
-            {/* Phone Number */}
-            <View style={{ marginBottom: 16 }}>
-              <TextInput
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#f97316',
-                  backgroundColor: '#f3f4f6',
-                  color: '#111827',
-                  borderRadius: 10,
-                  paddingVertical: 10,
-                  paddingHorizontal: 14,
-                  fontSize: 14,
-                }}
-                placeholder="Phone Number (Optional)"
-                placeholderTextColor="#888"
-                keyboardType="phone-pad"
-                value={form.phone_number}
-                onChangeText={(val) => handleChange('phone_number', val)}
-              />
-              {errors.phone_number ? (
-                <Text style={tw`text-red-500 text-sm ml-1`}>{errors.phone_number}</Text>
-              ) : null}
-            </View>
-
-            {/* Sign Up Button */}
-            <TouchableOpacity
-              onPress={handleRegister}
-              style={{
-                backgroundColor: '#f97316',
-                borderRadius: 10,
-                paddingVertical: 14,
-                marginBottom: 20,
-                shadowColor: '#000',
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                shadowOffset: { width: 0, height: 2 },
-              }}
-            >
-              <Text
-                style={{
-                  color: 'white',
-                  textAlign: 'center',
-                  fontWeight: 'bold',
-                  fontSize: 16,
-                }}
-              >
-                Sign Up
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <AuthFooter label="Already have an account?" link="/login" />
-        </View>
-      </KeyboardAwareScrollView>
+        </KeyboardAwareScrollView>
+      </LinearGradient>
     </>
 
   );
