@@ -17,8 +17,8 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  login: () => {},
-  logout: () => {},
+  login: () => { },
+  logout: () => { },
   loading: true,
 });
 
@@ -29,13 +29,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadSession = async () => {
-      const session = await getSessionFromDB();
-      if (session) setUser(session);
-      setLoading(false);
-    };
+    (async () => {
+      try {
+        const session = await getSessionFromDB();
+        if (session) setUser(session);
+      } catch (err) {
+        console.log('🛑 Error loading session:', err);
+      } finally {
+        setLoading(false);
+      }
 
-    loadSession();
+
+    })();
   }, []);
 
   const login = async (userData: AuthUser) => {
