@@ -1,20 +1,21 @@
 import { Entypo, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { Dimensions, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { ScrollView, Text, TouchableOpacity, View, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import tw from 'twrnc';
 import DashboardCard from '../components/DashboardCard';
+import DashboardHeader from '../components/DashboardHeader';
+import DashboardFooter from '../components/DashboardFooter';
 
 // Mock user data
 const user = {
   name: 'John Doe',
   email: 'john.doe@email.com',
   phone: '+1 234-567-8901',
-  role: 'admin', // Change to 'admin', 'volunteer', 'fieldworker', 'coordinator' to test
+  role: 'admin',
   lastLogin: '2024-06-01 10:30 AM',
   location: 'Toronto, ON',
-  avatar: null, // Add avatar URL if available
+  avatar: null,
   verified: true,
 };
 
@@ -42,9 +43,8 @@ const adminControls = [
   { label: 'System Health', icon: <MaterialIcons name="health-and-safety" size={22} color="#f97316" />, route: '/admin-dashboard' },
 ];
 
-// Add coordinator and volunteer specific stats
 const coordinatorStats = {
-  teamOverview: 5, // e.g., 5 team members
+  teamOverview: 5,
   pendingApprovals: 2,
   meetingsScheduled: 3,
 };
@@ -52,189 +52,150 @@ const volunteerStats = {
   volunteerHours: 42,
 };
 
-function getInitials(name: string) {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase();
-}
-
 export default function HomeDashboard() {
   const router = useRouter();
+  const [settingsVisible, setSettingsVisible] = useState(false);
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f1f5f9' }}>
-      <ScrollView
-        contentContainerStyle={{
-          paddingHorizontal: 16,
-          paddingTop: 24,
-          paddingBottom: 32,
-          minHeight: '100%',
-          justifyContent: 'flex-start',
-          alignItems: 'center',
-        }}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Dashboard Role Heading/Badge with role-specific color and inline logout */}
-        <View style={{ width: '100%', maxWidth: 480, alignSelf: 'center', marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: user.role === 'admin' ? '#FFF7ED' : user.role === 'coordinator' ? '#E0F2FE' : user.role === 'volunteer' ? '#F0FDF4' : '#F8FAFC', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4 }}>
-            <Text style={[tw`text-lg font-bold`, { color: user.role === 'admin' ? '#f97316' : user.role === 'coordinator' ? '#0284c7' : user.role === 'volunteer' ? '#22c55e' : '#64748b' }]}>{user.role.charAt(0).toUpperCase() + user.role.slice(1)} Dashboard</Text>
-          </View>
-          <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#f97316', borderRadius: 20, paddingVertical: 4, paddingHorizontal: 10, backgroundColor: '#fff', zIndex: 10, marginLeft: 12 }} onPress={() => {/* TODO: Add logout logic */}}>
-            <MaterialIcons name="logout" size={18} color="#f97316" />
-            <Text style={{ color: '#f97316', marginLeft: 4, fontWeight: 'bold', fontSize: 14 }}>Logout</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Profile Section - responsive for mobile */}
-        {(() => {
-          const screenWidth = Dimensions.get('window').width;
-          const isMobile = screenWidth < 400;
-          return (
-            <View
-              style={{
-                width: '100%',
-                maxWidth: 480,
-                alignSelf: 'center',
-                marginBottom: 24,
-                backgroundColor: '#fff',
-                borderRadius: 16,
-                padding: 20,
-                shadowColor: '#000',
-                shadowOpacity: 0.06,
-                shadowRadius: 8,
-                shadowOffset: { width: 0, height: 2 },
-                position: 'relative',
-                flexDirection: isMobile ? 'column' : 'row',
-                alignItems: isMobile ? 'flex-start' : 'center',
-                flexWrap: 'wrap',
-              }}
-            >
-              <View style={{ marginRight: isMobile ? 0 : 16, marginBottom: isMobile ? 12 : 0, alignSelf: isMobile ? 'center' : 'flex-start' }}>
-                {user.avatar ? (
-                  <Image source={{ uri: user.avatar }} style={{ width: 72, height: 72, borderRadius: 36 }} />
-                ) : (
-                  <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#f97316', alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ color: 'white', fontSize: 32, fontWeight: 'bold' }}>{getInitials(user.name)}</Text>
-                  </View>
-                )}
-              </View>
-              <View style={{ flex: 1, minWidth: 180 }}>
-                <Text style={tw`text-2xl font-bold text-gray-900`} numberOfLines={1} ellipsizeMode="tail">Welcome back, {user.name.split(' ')[0]} 👋</Text>
-                <Text style={tw`text-base text-gray-500 mt-1`}>{user.role.charAt(0).toUpperCase() + user.role.slice(1)}</Text>
-                <Text style={tw`text-base text-gray-500`}>{user.email || user.phone}</Text>
-                <Text style={tw`text-xs text-gray-400 mt-1`}>Last login: {user.lastLogin}</Text>
-              </View>
-            </View>
-          );
-        })()}
-
-        {/* Stats/Metrics Section - modern grid layout */}
-        <View style={{ width: '100%', maxWidth: 480, alignSelf: 'center', marginBottom: 16 }}>
-          <Text style={tw`text-base font-semibold text-gray-700 mb-2`}>Your Stats</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-            {/* Each card gets more margin and width for a modern look */}
-            {user.role === 'admin' && (
-              <View style={{ width: '100%', marginBottom: 12 }}>
-                <DashboardCard icon={<FontAwesome5 name="users" size={24} color="#f97316" style={{ marginRight: 14 }} />} title="Total Users" value={stats.totalUsers} style={{ minHeight: 90, ...tw`w-full` }} />
-              </View>
-            )}
-            {user.role !== 'admin' && (
-              <View style={{ width: '48%', marginBottom: 12 }}>
-                <DashboardCard icon={<Ionicons name="clipboard-outline" size={24} color="#f97316" style={{ marginRight: 14 }} />} title="Tasks Assigned to You" value={stats.tasksAssigned} style={{ minHeight: 90, ...tw`w-full` }} />
-              </View>
-            )}
-            {user.role !== 'admin' && (
-              <View style={{ width: '48%', marginBottom: 12 }}>
-                <DashboardCard icon={<MaterialIcons name="check-circle" size={24} color="#22c55e" style={{ marginRight: 14 }} />} title="Tasks Completed" value={stats.tasksCompleted} subtitle={`In Progress: ${stats.tasksInProgress}`} style={{ minHeight: 90, ...tw`w-full` }} />
-              </View>
-            )}
-            {user.role === 'volunteer' && (
-              <>
-                <View style={{ width: '48%', marginBottom: 12 }}>
-                  <DashboardCard icon={<Entypo name="calendar" size={24} color="#f97316" style={{ marginRight: 14 }} />} title="Events Joined" value={stats.eventsJoined} style={{ minHeight: 90, ...tw`w-full` }} />
-                </View>
-                <View style={{ width: '48%', marginBottom: 12 }}>
-                  <DashboardCard icon={<MaterialIcons name="access-time" size={24} color="#22c55e" style={{ marginRight: 14 }} />} title="Volunteer Hours" value={volunteerStats.volunteerHours} style={{ minHeight: 90, ...tw`w-full` }} />
-                </View>
-              </>
-            )}
-            {user.role === 'fieldworker' && (
-              <View style={{ width: '48%', marginBottom: 12 }}>
-                <DashboardCard icon={<MaterialIcons name="assignment-turned-in" size={24} color="#f97316" style={{ marginRight: 14 }} />} title="Field Reports Submitted" value={stats.fieldReports} style={{ minHeight: 90, ...tw`w-full` }} />
-              </View>
-            )}
-            {user.role === 'coordinator' && (
-              <>
-                <View style={{ width: '48%', marginBottom: 12 }}>
-                  <DashboardCard icon={<FontAwesome5 name="users" size={24} color="#0284c7" style={{ marginRight: 14 }} />} title="Team Overview" value={coordinatorStats.teamOverview} style={{ minHeight: 90, ...tw`w-full` }} />
-                </View>
-                <View style={{ width: '48%', marginBottom: 12 }}>
-                  <DashboardCard icon={<MaterialIcons name="pending-actions" size={24} color="#0284c7" style={{ marginRight: 14 }} />} title="Pending Approvals" value={coordinatorStats.pendingApprovals} style={{ minHeight: 90, ...tw`w-full` }} />
-                </View>
-                <View style={{ width: '48%', marginBottom: 12 }}>
-                  <DashboardCard icon={<MaterialIcons name="meeting-room" size={24} color="#0284c7" style={{ marginRight: 14 }} />} title="Meetings Scheduled" value={coordinatorStats.meetingsScheduled} style={{ minHeight: 90, ...tw`w-full` }} />
-                </View>
-              </>
-            )}
-            <View style={{ width: '48%', marginBottom: 12 }}>
-              <DashboardCard icon={<MaterialIcons name="verified-user" size={24} color={user.verified ? '#22c55e' : '#f97316'} style={{ marginRight: 14 }} />} title="Account Status" value={user.verified ? 'Verified' : 'Unverified'} status={user.verified ? <MaterialIcons name="check-circle" size={18} color="#22c55e" /> : <MaterialIcons name="error" size={18} color="#f97316" />} style={{ minHeight: 90, ...tw`w-full` }} />
-            </View>
-            {user.role === 'admin' && (
-              <View style={{ width: '48%', marginBottom: 12 }}>
-                <DashboardCard icon={<MaterialIcons name="person-add" size={24} color="#f97316" style={{ marginRight: 14 }} />} title="New Signups This Week" value={stats.newSignups} style={{ minHeight: 90, ...tw`w-full` }} />
-              </View>
-            )}
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+      <DashboardHeader title="Ember Core" onSettingsPress={() => setSettingsVisible(true)} />
+      {/* Settings Modal */}
+      <Modal visible={settingsVisible} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.18)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: -2 } }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#161412', marginBottom: 18 }}>Settings</Text>
+            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={() => { setSettingsVisible(false); router.push('/profile' as any); }}>
+              <MaterialIcons name="person" size={22} color="#f97316" style={{ marginRight: 12 }} />
+              <Text style={{ fontSize: 16, color: '#161412' }}>Profile</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={() => { setSettingsVisible(false); router.push('/preferences' as any); }}>
+              <MaterialIcons name="tune" size={22} color="#f97316" style={{ marginRight: 12 }} />
+              <Text style={{ fontSize: 16, color: '#161412' }}>Preferences</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={() => { setSettingsVisible(false); /* TODO: Add logout logic */ }}>
+              <MaterialIcons name="logout" size={22} color="#f97316" style={{ marginRight: 12 }} />
+              <Text style={{ fontSize: 16, color: '#f97316', fontWeight: 'bold' }}>Logout</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ alignSelf: 'center', marginTop: 18 }} onPress={() => setSettingsVisible(false)}>
+              <Text style={{ color: '#f97316', fontWeight: 'bold', fontSize: 16 }}>Close</Text>
+            </TouchableOpacity>
           </View>
         </View>
-
-        {/* Admin Controls Section - move above Upcoming Events/Tasks for admin */}
-        {user.role === 'admin' && (
-          <View style={{ width: '100%', maxWidth: 480, alignSelf: 'center', marginBottom: 16 }}>
-            <Text style={tw`text-base font-semibold text-gray-700 mb-2`}>Admin Controls</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 }}>
-              {adminControls.map((ctrl, idx) => (
-                <View key={idx} style={{ width: '48%' }}>
-                  <DashboardCard
-                    icon={ctrl.icon}
-                    title={ctrl.label}
-                    value=""
-                    style={tw`w-full`}
-                    onPress={() => router.push({ pathname: ctrl.route as any })}
-                  />
-                </View>
-              ))}
+      </Modal>
+      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+        {/* Quick Access Section */}
+        <Text style={{ color: '#161412', fontSize: 22, fontWeight: 'bold', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 12 }}>Quick Access</Text>
+        <View style={{ paddingHorizontal: 16 }}>
+          {/* Card 1: Offline Registration */}
+          <View style={{ flexDirection: 'row', alignItems: 'stretch', gap: 16, backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}>
+            <View style={{ flex: 2, justifyContent: 'space-between' }}>
+              <View>
+                <Text style={{ color: '#161412', fontSize: 16, fontWeight: 'bold' }}>Offline Registration</Text>
+                <Text style={{ color: '#81736a', fontSize: 14, marginTop: 2 }}>Register new users offline</Text>
+              </View>
+              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => router.push('/screens/RegisterAffectedPerson' as any)}>
+                <MaterialIcons name="arrow-forward" size={14} color="#161412" />
+                <Text style={{ color: '#161412', fontSize: 12, fontWeight: '500', marginRight: 4, paddingVertical: 0 }}>Go</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16/9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+              <MaterialIcons name="person-add-alt-1" size={48} color="#f97316" />
             </View>
           </View>
-        )}
-
-        {/* Upcoming Events/Tasks Section */}
-        <View style={{ width: '100%', maxWidth: 480, alignSelf: 'center', marginBottom: 16 }}>
-          <Text style={tw`text-base font-semibold text-gray-700 mb-2`}>Upcoming Events & Tasks</Text>
-          {upcoming.map((item, idx) => (
-            <DashboardCard
-              key={idx}
-              icon={item.type === 'event' ? <Entypo name="calendar" size={20} color="#f97316" style={{ marginRight: 10 }} /> : item.type === 'task' ? <Ionicons name="clipboard-outline" size={20} color="#f97316" style={{ marginRight: 10 }} /> : <MaterialIcons name="meeting-room" size={20} color="#f97316" style={{ marginRight: 10 }} />}
-              title={item.title}
-              value={item.date}
-              style={tw`w-full`}
-            />
-          ))}
-        </View>
-
-        {/* Location-based Section */}
-        {(user.role === 'fieldworker' || user.role === 'volunteer') && (
-          <View style={{ width: '100%', maxWidth: 480, alignSelf: 'center', marginBottom: 16 }}>
-            <Text style={tw`text-base font-semibold text-gray-700 mb-2`}>Location Info</Text>
-            <DashboardCard
-              icon={<Ionicons name="location-outline" size={20} color="#f97316" style={{ marginRight: 10 }} />}
-              title={user.role === 'fieldworker' ? "Assigned Region" : "Nearby Events"}
-              value={user.location}
-              style={tw`w-full`}
-            />
+          {/* Card 2: Medical Supply Management */}
+          <View style={{ flexDirection: 'row', alignItems: 'stretch', gap: 16, backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}>
+            <View style={{ flex: 2, justifyContent: 'space-between' }}>
+              <View>
+                <Text style={{ color: '#161412', fontSize: 16, fontWeight: 'bold' }}>Medical Supply Management</Text>
+                <Text style={{ color: '#81736a', fontSize: 14, marginTop: 2 }}>Manage medical supplies offline</Text>
+              </View>
+              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: navigate to medical supply */}}>
+                <MaterialIcons name="arrow-forward" size={14} color="#161412" />
+                <Text style={{ color: '#161412', fontSize: 12, fontWeight: '500', marginRight: 4, paddingVertical: 0 }}>Go</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16/9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+              <MaterialIcons name="medical-services" size={48} color="#f97316" />
+            </View>
           </View>
-        )}
+          {/* Card 3: View Unsynced Records */}
+          <View style={{ flexDirection: 'row', alignItems: 'stretch', gap: 16, backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}>
+            <View style={{ flex: 2, justifyContent: 'space-between' }}>
+              <View>
+                <Text style={{ color: '#161412', fontSize: 16, fontWeight: 'bold' }}>View Unsynced Records</Text>
+                <Text style={{ color: '#81736a', fontSize: 14, marginTop: 2 }}>View records not yet synced</Text>
+              </View>
+              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: navigate to unsynced records */}}>
+                <MaterialIcons name="arrow-forward" size={14} color="#161412" />
+                <Text style={{ color: '#161412', fontSize: 12, fontWeight: '500', marginRight: 4, paddingVertical: 0 }}>Go</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16/9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+              <MaterialIcons name="sync-problem" size={48} color="#f97316" />
+            </View>
+          </View>
+          {/* Card 4: Sync Data */}
+          <View style={{ flexDirection: 'row', alignItems: 'stretch', gap: 16, backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}>
+            <View style={{ flex: 2, justifyContent: 'space-between' }}>
+              <View>
+                <Text style={{ color: '#161412', fontSize: 16, fontWeight: 'bold' }}>Sync Data</Text>
+                <Text style={{ color: '#81736a', fontSize: 14, marginTop: 2 }}>Synchronize data with the server</Text>
+              </View>
+              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: sync data */}}>
+                <MaterialIcons name="arrow-forward" size={14} color="#161412" />
+                <Text style={{ color: '#161412', fontSize: 12, fontWeight: '500', marginRight: 4, paddingVertical: 0 }}>Go</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16/9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+              <MaterialIcons name="sync" size={48} color="#f97316" />
+            </View>
+          </View>
+        </View>
+        {/* Role-Based Actions Section */}
+        <Text style={{ color: '#161412', fontSize: 22, fontWeight: 'bold', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 12 }}>Role-Based Actions</Text>
+        <View style={{ paddingHorizontal: 16 }}>
+          {/* Volunteer Actions Card */}
+          <View style={{ flexDirection: 'row', alignItems: 'stretch', gap: 16, backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}>
+            <View style={{ flex: 2, justifyContent: 'space-between' }}>
+              <View>
+                <Text style={{ color: '#161412', fontSize: 16, fontWeight: 'bold' }}>Volunteer Actions</Text>
+                <Text style={{ color: '#81736a', fontSize: 14, marginTop: 2 }}>Actions available for volunteers</Text>
+              </View>
+              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: volunteer actions */}}>
+                <MaterialIcons name="arrow-forward" size={14} color="#161412" />
+                <Text style={{ color: '#161412', fontSize: 12, fontWeight: '500', marginRight: 4, paddingVertical: 0 }}>Go</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16/9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+              <MaterialIcons name="volunteer-activism" size={48} color="#f97316" />
+            </View>
+          </View>
+          {/* Admin Actions Card */}
+          <View style={{ flexDirection: 'row', alignItems: 'stretch', gap: 16, backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 32, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}>
+            <View style={{ flex: 2, justifyContent: 'space-between' }}>
+              <View>
+                <Text style={{ color: '#161412', fontSize: 16, fontWeight: 'bold' }}>Admin Actions</Text>
+                <Text style={{ color: '#81736a', fontSize: 14, marginTop: 2 }}>Actions available for administrators</Text>
+              </View>
+              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: admin actions */}}>
+                <MaterialIcons name="arrow-forward" size={14} color="#161412" />
+                <Text style={{ color: '#161412', fontSize: 12, fontWeight: '500', marginRight: 4, paddingVertical: 0 }}>Go</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16/9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+              <MaterialIcons name="admin-panel-settings" size={48} color="#f97316" />
+            </View>
+          </View>
+        </View>
       </ScrollView>
+      <DashboardFooter
+        activeTab="dashboard"
+        onTabPress={(tab) => {
+          if (tab === 'dashboard') return;
+          if (tab === 'settings') setSettingsVisible(true);
+          else if (tab === 'records') {/* TODO: navigate to records */}
+          else if (tab === 'map') {/* TODO: navigate to map */}
+        }}
+      />
     </SafeAreaView>
   );
 }
