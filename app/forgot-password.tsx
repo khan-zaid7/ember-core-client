@@ -1,19 +1,18 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
-  ScrollView,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import tw from 'twrnc';
 
+import api from '@/src/utils/axiosConfig';
 import EmberLogo from '../components/EmberLogo';
 import { FormInput } from '../components/FormInput';
 import LoadingSpinner from '../components/LoadingSpinner';
 import SuccessAlert from '../components/SuccessAlert';
-import api from '@/src/utils/axiosConfig';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -57,65 +56,90 @@ export default function ForgotPassword() {
   };
 
   return (
-    <SafeAreaView style={tw`flex-1 bg-[#f1f5f9]`}>
-      <ScrollView contentContainerStyle={tw`flex-grow px-6 pt-12`}>
-        <View style={{ width: '100%', maxWidth: 480, alignSelf: 'center' }}>
-          <EmberLogo />
-
-          <Text style={tw`text-base font-bold text-orange-500 text-center mt-10 mb-2`}>
-            Forgot Password
-          </Text>
-          <Text style={tw`text-base text-center text-gray-600 mb-8`}>
-            Enter your email and we’ll send you a recovery link.
-          </Text>
-
-          <FormInput
-            label=""
-            placeholder="Enter your email"
-            value={email}
-            onChangeText={(text: string) => setEmail(text)}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            error={error}
-            theme="light"
-          />
-
-          <TouchableOpacity
-            onPress={handleSubmit}
-            disabled={loading || !validateEmail(email)}
-            style={tw.style(
-              `py-3 rounded-xl mt-6`,
-              {
-                backgroundColor: '#f97316',
-              }
-            )}
-          >
-            {loading ? (
-              <LoadingSpinner />
-            ) : (
-              <Text style={tw`text-white text-center text-base font-semibold`}>
-                Send Recovery Link
+    <LinearGradient
+      colors={["#f97316", "#fde68a"]}
+      start={{ x: 0, y: 1 }}
+      end={{ x: 1, y: 0 }}
+      style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+    >
+      <SafeAreaView style={{ flex: 1, width: '100%', justifyContent: 'center', alignItems: 'center', paddingTop: 16 }}>
+        <View style={{ width: '100%', maxWidth: 420, alignItems: 'center', paddingHorizontal: 8, margin: 12 }}>
+          <View style={{
+            backgroundColor: '#fff',
+            borderRadius: 18,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.10,
+            shadowRadius: 8,
+            elevation: 4,
+            paddingHorizontal: 24,
+            paddingVertical: 6,
+            width: '100%',
+            minWidth: 0,
+          }}>
+            <View style={{ alignItems: 'center', marginBottom: 6 }}>
+              <EmberLogo />
+              <Text style={{ fontSize: 32, fontWeight: '800', color: '#f97316', marginTop: 2, textAlign: 'center' }}>
+                Forgot Password
               </Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => router.push('/login')}
-            style={tw`mt-6`}
-          >
-            <Text style={tw`text-sm text-orange-400 text-center font-semibold`}>
-              Back to Login
+            </View>
+            <Text style={{ fontSize: 15, color: '#64748b', textAlign: 'center', marginBottom: 12 }}>
+              Enter your email and we'll send you a recovery link.
             </Text>
-          </TouchableOpacity>
-
-          {success && (
-            <SuccessAlert
-              message="If your email is registered, a recovery link (OTP) has been sent."
-              onDismiss={() => setSuccess(false)}
-            />
-          )}
+            <View style={{ marginBottom: 4 }}>
+              <FormInput
+                placeholder="Enter your email"
+                value={email}
+                onChangeText={(text: string) => setEmail(text)}
+                keyboardType="email-address"
+                theme="light"
+              />
+              <View style={{ minHeight: 18, marginTop: 2 }}>
+                <Text style={{ color: '#ef4444', fontSize: 12 }}>{error || ' '}</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              onPress={handleSubmit}
+              disabled={loading || !validateEmail(email)}
+              style={{
+                backgroundColor: '#f97316',
+                borderRadius: 10,
+                height: 48,
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginTop: 8,
+                marginBottom: 0,
+                opacity: loading || !validateEmail(email) ? 0.7 : 1,
+                shadowColor: '#000',
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                shadowOffset: { width: 0, height: 2 },
+              }}
+            >
+              {loading ? (
+                <LoadingSpinner />
+              ) : (
+                <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '600', fontSize: 16 }}>
+                  Send Recovery Link
+                </Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push('/login')}
+              style={{ marginTop: 12 }}
+            >
+              <Text style={{ color: '#f97316', textAlign: 'center', fontWeight: '600', fontSize: 15 }}>
+                Back to Login
+              </Text>
+            </TouchableOpacity>
+            {success && (
+              <SuccessAlert
+                message="If your email is registered, a recovery link (OTP) has been sent."
+              />
+            )}
+          </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
