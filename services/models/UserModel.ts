@@ -85,3 +85,23 @@ export const insertUserOffline = (user: {
 
     return user_id;
 };
+
+export const loginUserOffline = (form: {email: string, password: string}) => {
+  const trimmedEmail = form.email.trim().toLowerCase();
+  const trimmedPassword = form.password.trim();
+
+  if (!trimmedEmail || !trimmedPassword) {
+    throw new Error('Email and password are required');
+  }
+
+  const user = db.getFirstSync<any>(
+    `SELECT * FROM users WHERE email = ? AND password = ?`,
+    [trimmedEmail, trimmedPassword]
+  );
+
+  if (!user) {
+    throw new Error('Invalid credentials');
+  }
+
+  return user;
+};
