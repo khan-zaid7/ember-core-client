@@ -2,6 +2,7 @@
 import { View, Platform } from "react-native";
 import { Slot } from "expo-router";
 import { initDatabase, verifyTables } from "../services/db";
+import { AuthProvider } from "@/context/AuthContext"; 
 
 export default function Layout() {
   useEffect(() => {
@@ -11,5 +12,11 @@ export default function Layout() {
     }
   }, []);
 
-  return <View style={{ flex: 1 }}><Slot /></View>;
+  return (
+    <AuthProvider>
+      <View style={{ flex: 1 }}>
+        <Slot />
+      </View>
+    </AuthProvider>
+  );
 }

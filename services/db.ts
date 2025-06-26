@@ -93,6 +93,16 @@ export const initDatabase = () => {
       last_attempt_at TEXT,
       created_by TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS sessions (
+      key TEXT PRIMARY KEY,
+      user_id TEXT,
+      name TEXT,
+      email TEXT,
+      role TEXT,
+      created_at TEXT
+    );
+    
   `);
 };
 
