@@ -10,6 +10,7 @@ export default function Index() {
     { label: 'Register (Online)', path: '/register' },
     { label: 'Login', path: '/login' },
     { label: 'Register People Offline', path: '/register-offline' },
+    { label: 'Dashboard', path: '/home' },
   ];
 
   return (

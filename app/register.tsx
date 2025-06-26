@@ -22,6 +22,7 @@ import React from 'react';
 import {
   screenSize
 } from '../src/utils/reponsive';
+import { insertUserOffline } from '@/services/models/UserModel';
 
 export default function Register() {
   const router = useRouter();
@@ -108,25 +109,40 @@ export default function Register() {
     return true;
   };
 
+  // const handleRegister = async () => {
+  //   if (!validateForm()) return;
+
+  //   setLoading(true); // show loader
+
+  //   try {
+  //     const response = await api.post('/register', form);
+  //     console.log('Registration successful:', response.data);
+  //     router.push({ pathname: '/login', params: { success: 'true' } });
+  //   } catch (error: any) {
+  //     console.log('FULL ERROR:', JSON.stringify(error, null, 2));
+  //     console.log('RESPONSE:', error?.response);
+  //     console.log('MESSAGE:', error?.message);
+  //     Alert.alert('Error', 'Registration failed. See logs.');
+  //   }
+  //   finally {
+  //     setLoading(false); // hide loader
+  //   }
+  // };
+
   const handleRegister = async () => {
     if (!validateForm()) return;
 
-    setLoading(true); // show loader
-
     try {
-      const response = await api.post('/register', form);
-      console.log('Registration successful:', response.data);
-      router.push({ pathname: '/login', params: { success: 'true' } });
+      const user_id = insertUserOffline(form);
+      Alert.alert('Saved Offline', `User stored locally with ID:\n${user_id}`);
+      router.push('/login');
     } catch (error: any) {
-      console.log('FULL ERROR:', JSON.stringify(error, null, 2));
-      console.log('RESPONSE:', error?.response);
-      console.log('MESSAGE:', error?.message);
-      Alert.alert('Error', 'Registration failed. See logs.');
-    }
-    finally {
-      setLoading(false); // hide loader
+      console.log('❌ Error saving user:', error);
+      Alert.alert('Error', error.message || 'Failed to save user offline');
     }
   };
+
+
 
   return (
     <>

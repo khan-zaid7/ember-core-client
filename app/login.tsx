@@ -20,8 +20,13 @@ import EmberLogo from '../components/EmberLogo';
 import { FormInput } from '../components/FormInput';
 import SuccessAlert from '../components/SuccessAlert';
 import { verticalScale } from '../src/utils/reponsive';
+import { loginUserOffline } from '@/services/models/UserModel';
+import { useAuth } from '@/context/AuthContext';
+
 
 export default function Login() {
+  const { login } = useAuth();
+
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -94,24 +99,40 @@ export default function Login() {
     setErrors((prev) => ({ ...prev, [key]: error }));
   };
 
+  // const handleLogin = async () => {
+  //   if (!validateForm()) return;
+  //   setLoading(true);
+
+  //   try {
+  //     const response = await api.post('/login', form);
+  //     const { token } = response.data;
+
+  //     await AsyncStorage.setItem('token', token);
+  //     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  //     router.push({ pathname: '/home', params: { success: 'true' } });
+  //   } catch (error: any) {
+  //     console.log('FULL ERROR:', JSON.stringify(error, null, 2));
+  //     console.log('RESPONSE:', error?.response);
+  //     console.log('MESSAGE:', error?.message);
+  //     Alert.alert('Error', 'Login failed. Please try again.');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const handleLogin = async () => {
     if (!validateForm()) return;
-    setLoading(true);
 
     try {
-      const response = await api.post('/login', form);
-      const { token } = response.data;
+      const user = loginUserOffline(form);
+      await login(user);
 
-      await AsyncStorage.setItem('token', token);
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      router.push({ pathname: '/home', params: { success: 'true' } });
+
+      Alert.alert('Success', `Welcome ${user.name}`);
+      router.push('/home');
     } catch (error: any) {
-      console.log('FULL ERROR:', JSON.stringify(error, null, 2));
-      console.log('RESPONSE:', error?.response);
-      console.log('MESSAGE:', error?.message);
-      Alert.alert('Error', 'Login failed. Please try again.');
-    } finally {
-      setLoading(false);
+      console.log('❌ Login error:', error);
+      Alert.alert('Error', error.message || 'Login failed');
     }
   };
 
