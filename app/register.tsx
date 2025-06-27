@@ -47,7 +47,6 @@ export default function Register() {
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState('');
   const [roleItems, setRoleItems] = useState([
-    { label: 'admin', value: 'admin' },
     { label: 'fieldworker', value: 'fieldworker' },
     { label: 'volunteer', value: 'volunteer' },
     { label: 'coordinator', value: 'coordinator' },
@@ -66,10 +65,26 @@ export default function Register() {
     let error = '';
     if (key === 'name' && !value.trim()) error = 'Name is required.';
     if (key === 'email') {
-      if (!value.trim()) error = 'Email is required.';
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = 'Invalid email.';
+      if (!value.trim()) {
+        error = 'Email is required.';
+      } else if (
+        !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(value) ||
+        !/[0-9]/.test(value)
+      ) {
+        error = 'Invalid email. Must include a digit and valid format.';
+      }
     }
-    if (key === 'password' && value.length < 6) error = 'Password too short.';
+
+    if (key === 'password') {
+      const pw = value;
+      const hasLower = /[a-z]/.test(pw);
+      const hasUpper = /[A-Z]/.test(pw);
+      const hasDigit = /[0-9]/.test(pw);
+      if (pw.length < 6 || !hasLower || !hasUpper || !hasDigit) {
+        error = 'Weak password. Include lowercase, uppercase, digit, min 6 chars.';
+      }
+    }
+
     if (key === 'phone_number' && value && !/^[0-9\-\+]{9,15}$/.test(value))
       error = 'Invalid phone number.';
 
@@ -92,10 +107,13 @@ export default function Register() {
       return false;
     }
 
-    if (password.length < 6) {
-      Alert.alert('Validation Error', 'Password must be at least 6 characters.');
+    const pw = password;
+    const strongPw = /[a-z]/.test(pw) && /[A-Z]/.test(pw) && /[0-9]/.test(pw) && pw.length >= 6;
+    if (!strongPw) {
+      Alert.alert('Validation Error', 'Password is too weak.');
       return false;
     }
+
 
     if (!allowedRoles.includes(role.toLowerCase())) {
       Alert.alert('Validation Error', 'Invalid role selected.');
@@ -121,9 +139,11 @@ export default function Register() {
       router.push({ pathname: '/login', params: { success: 'true' } });
     } catch (error: any) {
       console.log('FULL ERROR:', JSON.stringify(error, null, 2));
-      console.log('RESPONSE:', error?.response);
-      console.log('MESSAGE:', error?.message);
-      Alert.alert('Error', 'Registration failed. See logs.');
+      if (error?.response?.status === 409) {
+        Alert.alert('Email already registered', 'Please use a different email address.');
+      } else {
+        Alert.alert('Error', 'Registration failed. See logs.');
+      }
     }
     finally {
       setLoading(false); // hide loader
