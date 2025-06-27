@@ -2,6 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
+import { useAuth } from '@/context/AuthContext';
 
 interface SettingsComponentProps {
   visible: boolean;
@@ -10,6 +11,8 @@ interface SettingsComponentProps {
 
 const SettingsComponent: React.FC<SettingsComponentProps> = ({ visible, onClose }) => {
   const router = useRouter();
+  const { logout } = useAuth();
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.18)', justifyContent: 'flex-end' }}>
@@ -23,7 +26,13 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({ visible, onClose 
             <MaterialIcons name="tune" size={22} color="#f97316" style={{ marginRight: 12 }} />
             <Text style={{ fontSize: 16, color: '#161412' }}>Preferences</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={() => { onClose(); /* TODO: Add logout logic */ }}>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }}
+            onPress={() => {
+              logout();       
+              onClose();      
+            }}
+          >
             <MaterialIcons name="logout" size={22} color="#f97316" style={{ marginRight: 12 }} />
             <Text style={{ fontSize: 16, color: '#f97316', fontWeight: 'bold' }}>Logout</Text>
           </TouchableOpacity>

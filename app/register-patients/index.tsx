@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput, FlatList, StyleShe
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import DashboardHeader from '@/components/Header';
+import DashboardFooter from '@/components/Footer';
 
 const mockUsers = [
   { name: 'Ethan Bennett', id: '123456', status: 'Synced', ago: '2d ago' },
@@ -18,6 +20,8 @@ export default function UsersList() {
   const [search, setSearch] = useState('');
   const [genderFilter, setGenderFilter] = useState('');
   const [syncFilter, setSyncFilter] = useState('');
+  const [footerTab, setFooterTab] = useState('dashboard');
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
 
   const filteredUsers = mockUsers.filter(u =>
     (u.name.toLowerCase().includes(search.toLowerCase()) || u.id.includes(search)) &&
@@ -25,32 +29,14 @@ export default function UsersList() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fcfaf8' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
       {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fcfaf8', padding: 16, paddingBottom: 8, justifyContent: 'space-between' }}>
-        <TouchableOpacity
-          style={{ width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', position: 'absolute', left: 0 }}
-          activeOpacity={0.7}
-          onPress={() => router.back()}
-        >
-          <MaterialIcons name="arrow-back" size={28} color="#1c130d" />
-        </TouchableOpacity>
-        <Text style={{ color: '#1c130d', fontSize: 20, fontWeight: 'bold', flex: 1, textAlign: 'center', letterSpacing: -0.5, paddingLeft: 32 }}>Patients</Text>
-        <TouchableOpacity
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 24,
-            backgroundColor: 'transparent',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          activeOpacity={0.7}
-          onPress={() => router.push('/register-offline' as any)}
-        >
-          <MaterialIcons name="add" size={28} color="#1c130d" />
-        </TouchableOpacity>
-      </View>
+      <DashboardHeader
+        title="Patients"
+        showSettings
+        onSettingsPress={() => setSettingsModalVisible(true)}
+        onBackPress={() => router.back()}
+      />
       {/* Search Bar */}
       <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f4ece6', borderRadius: 12, height: 48 }}>
@@ -103,18 +89,25 @@ export default function UsersList() {
         )}
       />
       {/* Floating Plus Button */}
-      <View style={{ position: 'absolute', right: 24, bottom: 32 }}>
+      <View style={{ position: 'absolute', right: 24, bottom: 110 }}>
         <TouchableOpacity
           style={{
             flexDirection: 'row', alignItems: 'center', backgroundColor: '#f97316', borderRadius: 999, height: 56, paddingHorizontal: 20, shadowColor: '#f97316', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
           }}
           activeOpacity={0.8}
-          onPress={() => router.push('/register-offline' as any)}
+          onPress={() => router.push('/register-patients/create' as any)}
         >
-          <MaterialIcons name="add" size={28} color="#fcfaf8" />
-          <Text style={{ color: '#fcfaf8', fontWeight: 'bold', fontSize: 16, marginLeft: 8 }}>Add</Text>
+          <MaterialIcons name="add" size={28} color="#ffffff" />
+          <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 16, marginLeft: 8 }}>Add</Text>
         </TouchableOpacity>
       </View>
+      <DashboardFooter
+          activeTab={footerTab}
+          onTabPress={(tab) => {
+            setFooterTab(tab);
+            if (tab === 'settings') setSettingsModalVisible(true);
+          }}
+        />
     </SafeAreaView>
   );
 }
@@ -123,7 +116,7 @@ const styles = StyleSheet.create({
   userRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fcfaf8',
+    backgroundColor: '#ffffff',
     paddingHorizontal: 16,
     minHeight: 72,
     paddingVertical: 10,

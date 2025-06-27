@@ -5,16 +5,16 @@ import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import DashboardFooter from '../components/Footer';
-import { FormInput } from '../components/FormInput';
-import DashboardHeader from '../components/Header';
+import DashboardFooter from '../../components/Footer';
+import { FormInput } from '../../components/FormInput';
+import DashboardHeader from '../../components/Header';
 
 import { useAuth } from '@/context/AuthContext';
 import { insertRegistrationOffline } from '@/services/models/RegistrationModel';
 import { Alert } from 'react-native';
 import { db } from '@/services/db';
 
-import SettingsComponent from '../components/SettingsComponent';
+import SettingsComponent from '../../components/SettingsComponent';
 
 
 // Types for form and errors

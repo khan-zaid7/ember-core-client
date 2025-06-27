@@ -71,7 +71,7 @@ export default function HomeDashboard() {
                 <Text style={{ color: '#161412', fontSize: 16, fontWeight: 'bold' }}>Offline Registration</Text>
                 <Text style={{ color: '#81736a', fontSize: 14, marginTop: 2 }}>Register new users offline</Text>
               </View>
-              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => router.push('/users-list' as any)}>
+              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => router.push('./register-patients/' as any)}>
                 <MaterialIcons name="arrow-forward" size={14} color="#161412" />
                 <Text style={{ color: '#161412', fontSize: 12, fontWeight: '500', marginRight: 4, paddingVertical: 0 }}>Go</Text>
               </TouchableOpacity>
