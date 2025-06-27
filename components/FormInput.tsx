@@ -19,6 +19,7 @@ interface FormInputProps {
   keyboardType?: KeyboardTypeOptions;
   theme?: 'light' | 'dark';
   editable?: boolean;
+  fontSize?: number;
 }
 
 export const FormInput: React.FC<FormInputProps> = ({
@@ -32,6 +33,7 @@ export const FormInput: React.FC<FormInputProps> = ({
   keyboardType = 'default',
   theme = 'dark',
   editable = true,
+  fontSize,
 }) => {
   const isLight = theme === 'light';
 
@@ -42,7 +44,8 @@ export const FormInput: React.FC<FormInputProps> = ({
           'rounded-xl px-4 py-3.5 pr-12 border',
           isLight
             ? 'bg-white text-black border-gray-300'
-            : 'bg-[#111827] text-white border-orange-500'
+            : 'bg-[#111827] text-white border-orange-500',
+          fontSize ? { fontSize } : {}
         )}
         placeholder={placeholder}
         placeholderTextColor={isLight ? '#555' : '#aaa'}
