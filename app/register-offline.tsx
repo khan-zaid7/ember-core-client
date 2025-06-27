@@ -1,4 +1,4 @@
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import DashboardFooter from '../components/Footer';
 import { FormInput } from '../components/FormInput';
 import DashboardHeader from '../components/Header';
+import SettingsComponent from '../components/SettingsComponent';
 
 // Types for form and errors
 interface RegisterForm {
@@ -76,8 +77,6 @@ export default function RegisterOffline() {
   // Derive form validity without setting state
   const isAgeValid = /^\d+$/.test(form.age) && Number(form.age) >= 0 && Number(form.age) <= 120;
   const isFormValid =
-    form.registrationId.trim() &&
-    form.userId.trim() &&
     form.fullName.trim() &&
     isAgeValid &&
     form.gender.trim() &&
@@ -86,8 +85,6 @@ export default function RegisterOffline() {
 
   const validateForm = () => {
     const tempErrors: FormErrors = {};
-    if (!form.registrationId.trim()) tempErrors.registrationId = 'Required';
-    if (!form.userId.trim()) tempErrors.userId = 'Required';
     if (!form.fullName.trim()) tempErrors.fullName = 'Required';
     if (!form.age.trim()) tempErrors.age = 'Required';
     else if (!/^\d+$/.test(form.age) || Number(form.age) < 0 || Number(form.age) > 120) tempErrors.age = 'Enter a valid age (0-120)';
@@ -151,9 +148,10 @@ export default function RegisterOffline() {
                   onChangeText={text => handleChange('fullName', text)}
                   placeholder="Person Name"
                   theme="light"
+                  fontSize={18}
                 />
                 <View style={{ minHeight: 18, marginTop: 2 }}>
-                  <Text style={{ color: '#ef4444', fontSize: 14 }}>
+                  <Text style={{ color: '#ef4444', fontSize:18 }}>
                     {errors.fullName || ' '}
                   </Text>
                 </View>
@@ -165,9 +163,10 @@ export default function RegisterOffline() {
                   placeholder="Age"
                   theme="light"
                   keyboardType="numeric"
+                  fontSize={18}
                 />
                 <View style={{ minHeight: 18, marginTop: 2 }}>
-                  <Text style={{ color: '#ef4444', fontSize: 14 }}>
+                  <Text style={{ color: '#ef4444', fontSize: 18 }}>
                     {errors.age || ' '}
                   </Text>
                 </View>
@@ -319,6 +318,7 @@ export default function RegisterOffline() {
                     keyboardType="default"
                     secureTextEntry={false}
                     editable={false}
+                    fontSize={18}
                   />
                   <View style={{ minHeight: 18, marginTop: 2 }}>
                     <Text style={{ color: '#ef4444', fontSize: 14 }}>
@@ -364,29 +364,7 @@ export default function RegisterOffline() {
           if (tab === 'settings') setSettingsModalVisible(true);
         }}
       />
-      {/* Settings Modal - styled like home.tsx */}
-      <Modal visible={settingsModalVisible} transparent animationType="fade">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.18)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: -2 } }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#161412', marginBottom: 18 }}>Settings</Text>
-            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={() => { setSettingsModalVisible(false); router.push('/profile' as any); }}>
-              <MaterialIcons name="person" size={22} color="#f97316" style={{ marginRight: 12 }} />
-              <Text style={{ fontSize: 16, color: '#161412' }}>Profile</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={() => { setSettingsModalVisible(false); router.push('/preferences' as any); }}>
-              <MaterialIcons name="tune" size={22} color="#f97316" style={{ marginRight: 12 }} />
-              <Text style={{ fontSize: 16, color: '#161412' }}>Preferences</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={() => { setSettingsModalVisible(false); /* TODO: Add logout logic */ }}>
-              <MaterialIcons name="logout" size={22} color="#f97316" style={{ marginRight: 12 }} />
-              <Text style={{ fontSize: 16, color: '#f97316', fontWeight: 'bold' }}>Logout</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={{ alignSelf: 'center', marginTop: 18 }} onPress={() => setSettingsModalVisible(false)}>
-              <Text style={{ color: '#f97316', fontWeight: 'bold', fontSize: 16 }}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <SettingsComponent visible={settingsModalVisible} onClose={() => setSettingsModalVisible(false)} />
     </SafeAreaView>
   );
 }

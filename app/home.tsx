@@ -1,11 +1,11 @@
-import { Entypo, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View, Modal } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import DashboardCard from '../components/DashboardCard';
-import DashboardHeader from '../components/Header';
 import DashboardFooter from '../components/Footer';
+import DashboardHeader from '../components/Header';
+import SettingsComponent from '../components/SettingsComponent';
 
 // Mock user data
 const user = {
@@ -59,28 +59,7 @@ export default function HomeDashboard() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <DashboardHeader title="Ember Core" onSettingsPress={() => setSettingsVisible(true)} />
       {/* Settings Modal */}
-      <Modal visible={settingsVisible} transparent animationType="fade">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.18)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: -2 } }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#161412', marginBottom: 18 }}>Settings</Text>
-            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={() => { setSettingsVisible(false); router.push('/profile' as any); }}>
-              <MaterialIcons name="person" size={22} color="#f97316" style={{ marginRight: 12 }} />
-              <Text style={{ fontSize: 16, color: '#161412' }}>Profile</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={() => { setSettingsVisible(false); router.push('/preferences' as any); }}>
-              <MaterialIcons name="tune" size={22} color="#f97316" style={{ marginRight: 12 }} />
-              <Text style={{ fontSize: 16, color: '#161412' }}>Preferences</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={() => { setSettingsVisible(false); /* TODO: Add logout logic */ }}>
-              <MaterialIcons name="logout" size={22} color="#f97316" style={{ marginRight: 12 }} />
-              <Text style={{ fontSize: 16, color: '#f97316', fontWeight: 'bold' }}>Logout</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={{ alignSelf: 'center', marginTop: 18 }} onPress={() => setSettingsVisible(false)}>
-              <Text style={{ color: '#f97316', fontWeight: 'bold', fontSize: 16 }}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <SettingsComponent visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         {/* Quick Access Section */}
         <Text style={{ color: '#161412', fontSize: 22, fontWeight: 'bold', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 12 }}>Quick Access</Text>
