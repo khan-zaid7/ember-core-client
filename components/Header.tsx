@@ -6,11 +6,23 @@ interface DashboardHeaderProps {
   title: string;
   onSettingsPress?: () => void;
   showSettings?: boolean;
+  onBackPress?: () => void;
 }
 
-const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, onSettingsPress, showSettings = true }) => (
+const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, onSettingsPress, showSettings = true, onBackPress }) => (
   <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 16, paddingBottom: 8, justifyContent: 'space-between', borderBottomWidth: 1, borderColor: '#f4f2f1' }}>
-    <Text style={{ color: '#161412', fontSize: 20, fontWeight: 'bold', flex: 1, textAlign: 'center', letterSpacing: -0.5, paddingLeft: 32 }}>{title}</Text>
+    {onBackPress ? (
+      <TouchableOpacity
+        onPress={onBackPress}
+        style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center', marginRight: 8 }}
+        activeOpacity={0.7}
+      >
+        <MaterialIcons name="chevron-left" size={28} color="#f97316" />
+      </TouchableOpacity>
+    ) : (
+      <View style={{ width: 40, height: 40, marginRight: 8 }} />
+    )}
+    <Text style={{ color: '#161412', fontSize: 20, fontWeight: 'bold', flex: 1, textAlign: 'center', letterSpacing: -0.5 }}>{title}</Text>
     {showSettings && (
       <TouchableOpacity
         style={{
