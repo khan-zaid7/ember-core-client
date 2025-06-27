@@ -8,6 +8,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import DashboardFooter from '../components/Footer';
 import { FormInput } from '../components/FormInput';
 import DashboardHeader from '../components/Header';
+import { useAuth } from '@/context/AuthContext';
+import { insertRegistrationOffline } from '@/services/models/RegistrationModel';
+import { Alert } from 'react-native';
+import { db } from '@/services/db';
 
 // Types for form and errors
 interface RegisterForm {
@@ -60,6 +64,9 @@ const mockLocations = [
 ];
 
 export default function RegisterOffline() {
+  // get the currently authenticated user 
+  const { user } = useAuth();
+
   const [form, setForm] = useState<RegisterForm>(initialForm);
   const [errors, setErrors] = useState<FormErrors>({});
   const [showSuccess, setShowSuccess] = useState(false);
@@ -102,13 +109,34 @@ export default function RegisterOffline() {
     setForm(prev => ({ ...prev, timestamp: getCurrentTimestamp() }));
   };
 
-  const handleSave = () => {
-    if (!validateForm()) return;
-    // MOCK LOGIC: Save form data locally
+const handleSave = () => {
+  if (!validateForm()) return;
+
+  if (!user || !user.user_id) {
+    Alert.alert('Error', 'No user is logged in');
+    return;
+  }
+
+  try {
+    const registrationId = insertRegistrationOffline({
+      ...form,
+      userId: user.user_id, // inject from session
+    });
+
+    // Fetch inserted instance and log it
+    const inserted = db.getFirstSync<any>(
+      `SELECT * FROM registrations WHERE registration_id = ?`,
+      [registrationId]
+    );
+    console.log('✅ Inserted Registration:', inserted);
+
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3000);
     setForm(initialForm);
-  };
+  } catch (error: any) {
+    Alert.alert('Error', error.message || 'Something went wrong');
+  }
+};
 
   // Top bar color logic
   const topBarColor = isFormValid ? '#22c55e' : '#ef4444'; // green-500 or red-500
