@@ -67,3 +67,17 @@ export const insertRegistrationOffline = (form: {
 
   return registration_id;
 };
+
+// models/registrationModel.ts
+
+export const getAllRegistrations = () => {
+  return db.getAllSync<{
+    registration_id: string;
+    person_name: string;
+    synced: number;
+    timestamp: string;
+    gender: string;
+  }>(
+    `SELECT registration_id, person_name, synced, gender, timestamp FROM registrations ORDER BY timestamp DESC`
+  );
+};

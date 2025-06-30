@@ -1,32 +1,62 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, FlatList, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import DashboardHeader from '@/components/Header';
-import DashboardFooter from '@/components/Footer';
+import { Footer, useFooterNavigation } from '@/components/Footer';
+import { getAllRegistrations } from '@/services/models/RegistrationModel';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+dayjs.extend(relativeTime);
+import SettingsComponent from '@/components/SettingsComponent';
 
-const mockUsers = [
-  { name: 'Ethan Bennett', id: '123456', status: 'Synced', ago: '2d ago' },
-  { name: 'Sophia Carter', id: '789012', status: 'Unsynced', ago: '1d ago' },
-  { name: 'Liam Thompson', id: '345678', status: 'Synced', ago: '3d ago' },
-  { name: 'Olivia Harper', id: '901234', status: 'Unsynced', ago: '2d ago' },
-  { name: 'Noah Foster', id: '567890', status: 'Synced', ago: '1d ago' },
-  { name: 'Ava Hayes', id: '234567', status: 'Unsynced', ago: '3d ago' },
-];
+type RegistrationItem = {
+  id: string;
+  name: string;
+  status: string;
+  ago: string;
+  gender: string;
+};
+
+
 
 export default function UsersList() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [genderFilter, setGenderFilter] = useState('');
   const [syncFilter, setSyncFilter] = useState('');
-  const [footerTab, setFooterTab] = useState('dashboard');
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
 
-  const filteredUsers = mockUsers.filter(u =>
+  const [registrations, setRegistrations] = useState<RegistrationItem[]>([]);
+
+
+  useEffect(() => {
+    const loadRegistrations = () => {
+      try {
+        const data = getAllRegistrations().map((item) => ({
+          id: item.registration_id,
+          name: item.person_name,
+          status: item.synced === 1 ? 'Synced' : 'Unsynced',
+          gender: item.gender,
+          ago: dayjs(item.timestamp).fromNow(),
+        }));
+        setRegistrations(data);
+      } catch (err) {
+        console.error('Failed to load registrations:', err);
+      }
+    };
+
+    loadRegistrations();
+  }, []);
+
+  const filteredUsers = registrations.filter(u =>
     (u.name.toLowerCase().includes(search.toLowerCase()) || u.id.includes(search)) &&
-    (!syncFilter || u.status === syncFilter)
+    (!syncFilter || u.status === syncFilter) &&
+    (!genderFilter || u.gender === genderFilter)
   );
+
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
@@ -39,37 +69,87 @@ export default function UsersList() {
       />
       {/* Search Bar */}
       <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f4ece6', borderRadius: 12, height: 48 }}>
-          <MaterialIcons name="search" size={24} color="#9e6b47" style={{ marginLeft: 12 }} />
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: '#ffffff',
+          borderRadius: 24,
+          height: 48,
+          borderColor: '#D1D5DB',
+          borderWidth: 1
+        }}>
+          <MaterialIcons name="search" size={24} color="#6b7280" style={{ marginLeft: 12 }} />
           <TextInput
             placeholder="Search by name or ID"
-            placeholderTextColor="#9e6b47"
-            style={{ flex: 1, color: '#1c130d', fontSize: 16, paddingHorizontal: 8 }}
+            placeholderTextColor="#6b7280"
+            style={{ flex: 1, color: '#6b7280', fontSize: 16, paddingHorizontal: 8 }}
             value={search}
             onChangeText={setSearch}
             underlineColorAndroid="transparent"
           />
         </View>
       </View>
+
       {/* Filters */}
       <Text style={{ color: '#1c130d', fontSize: 16, fontWeight: 'bold', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>Filter by</Text>
       <View style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 12, marginBottom: 8 }}>
+        {/* Gender Filter */}
         <TouchableOpacity
-          style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f4ece6', borderRadius: 999, paddingLeft: 16, paddingRight: 8, height: 32, marginRight: 8 }}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#f4f2f1',
+            borderRadius: 999,
+            paddingLeft: 16,
+            paddingRight: 8,
+            height: 32,
+            marginRight: 8,
+            borderColor: '#6b7280',
+
+          }}
           activeOpacity={0.7}
-          onPress={() => {}}
+          onPress={() => {
+            setGenderFilter(prev =>
+              prev === '' ? 'Male'
+                : prev === 'Male' ? 'Female'
+                  : ''
+            );
+          }}
         >
-          <Text style={{ color: '#1c130d', fontSize: 14, fontWeight: '500', marginRight: 4 }}>Gender</Text>
+          <Text style={{ color: '#1c130d', fontSize: 14, fontWeight: '500', marginRight: 4 }}>
+            Gender: {genderFilter || 'All'}
+          </Text>
           <MaterialIcons name="arrow-drop-down" size={20} color="#1c130d" />
         </TouchableOpacity>
+
+        {/* Sync Filter */}
         <TouchableOpacity
-          style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f4ece6', borderRadius: 999, paddingLeft: 16, paddingRight: 8, height: 32 }}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#f4f2f1',
+            borderRadius: 999,
+            paddingLeft: 16,
+            paddingRight: 8,
+            height: 32,
+            borderColor: '#6b7280',
+
+          }}
           activeOpacity={0.7}
-          onPress={() => setSyncFilter(syncFilter === 'Synced' ? '' : 'Synced')}
+          onPress={() => {
+            setSyncFilter(prev =>
+              prev === '' ? 'Synced'
+                : prev === 'Synced' ? 'Unsynced'
+                  : ''
+            );
+          }}
         >
-          <Text style={{ color: '#1c130d', fontSize: 14, fontWeight: '500', marginRight: 4 }}>Sync Status</Text>
+          <Text style={{ color: '#1c130d', fontSize: 14, fontWeight: '500', marginRight: 4 }}>
+            Sync: {syncFilter || 'All'}
+          </Text>
           <MaterialIcons name="arrow-drop-down" size={20} color="#1c130d" />
         </TouchableOpacity>
+
       </View>
       {/* User List */}
       <FlatList
@@ -78,16 +158,44 @@ export default function UsersList() {
         contentContainerStyle={{ paddingBottom: 100 }}
         renderItem={({ item }) => (
           <View style={styles.userRow}>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, maxWidth: '75%' }}>
               <Text style={styles.userName}>{item.name}</Text>
-              <Text style={styles.userId}>Registration ID: {item.id}</Text>
+              <Text
+                style={styles.userId}
+                numberOfLines={1}
+                ellipsizeMode="middle"
+              >
+                Registration ID: {item.id}
+              </Text>
             </View>
-            <Text style={[styles.userStatus, { color: item.status === 'Synced' ? '#1c130d' : '#f97316' }]}>
+            <Text
+              style={[
+                styles.userStatus,
+                {
+                  color: item.status === 'Synced' ? '#1c130d' : '#f97316',
+                  textAlign: 'right',
+                },
+              ]}
+            >
               {item.status} • {item.ago}
             </Text>
           </View>
         )}
+        ListEmptyComponent={
+          <Text
+            style={{
+              textAlign: 'center',
+              marginTop: 32,
+              color: '#9e6b47',
+              fontSize: 16,
+            }}
+          >
+            No registrations found.
+          </Text>
+        }
       />
+
+
       {/* Floating Plus Button */}
       <View style={{ position: 'absolute', right: 24, bottom: 110 }}>
         <TouchableOpacity
@@ -101,13 +209,8 @@ export default function UsersList() {
           <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 16, marginLeft: 8 }}>Add</Text>
         </TouchableOpacity>
       </View>
-      <DashboardFooter
-          activeTab={footerTab}
-          onTabPress={(tab) => {
-            setFooterTab(tab);
-            if (tab === 'settings') setSettingsModalVisible(true);
-          }}
-        />
+      <Footer activeTab={activeTab} onTabPress={handleTabPress} />
+      <SettingsComponent visible={settingsModalVisible} onClose={() => setSettingsModalVisible(false)} />
     </SafeAreaView>
   );
 }

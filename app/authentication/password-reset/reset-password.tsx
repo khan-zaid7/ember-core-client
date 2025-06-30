@@ -6,9 +6,9 @@ import { Alert, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import api from '@/src/utils/axiosConfig';
-import EmberLogo from '../components/EmberLogo';
-import { FormInput } from '../components/FormInput';
-import LoadingSpinner from '../components/LoadingSpinner';
+import EmberLogo from '@/components/EmberLogo';
+import { FormInput } from '@/components/FormInput';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 
 export default function ResetPassword() {
@@ -47,7 +47,7 @@ export default function ResetPassword() {
       });
 
       if (response.status === 200) {
-        router.replace('/login');
+        router.replace('/authentication/login');
       }
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Error resetting password.';

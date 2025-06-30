@@ -11,17 +11,17 @@ import DropDownPicker from 'react-native-dropdown-picker';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import tw from 'twrnc';
 
-import AuthFooter from '../components/AuthFooter';
-import EmberLogo from '../components/EmberLogo';
-import { FormInput } from '../components/FormInput';
-import LoadingSpinner from '../components/LoadingSpinner';
+import AuthFooter from '@/components/AuthFooter';
+import EmberLogo from '@/components/EmberLogo';
+import { FormInput } from '@/components/FormInput';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 import api from '@/src/utils/axiosConfig';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
   screenSize
-} from '../src/utils/reponsive';
+} from '@/src/utils/reponsive';
 import { insertUserOffline } from '@/services/models/UserModel';
 
 export default function Register() {
@@ -40,16 +40,16 @@ export default function Register() {
     email: '',
     password: '',
     phone_number: '',
+    role: ''
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState('');
   const [roleItems, setRoleItems] = useState([
-    { label: 'admin', value: 'admin' },
-    { label: 'fieldworker', value: 'fieldworker' },
-    { label: 'volunteer', value: 'volunteer' },
-    { label: 'coordinator', value: 'coordinator' },
+    { label: 'Field Worker', value: 'fieldworker' },
+    { label: 'Volunteer', value: 'volunteer' },
+    { label: 'Coordinator', value: 'coordinator' },
   ]);
   const [loading, setLoading] = useState(false);
 
@@ -135,7 +135,7 @@ export default function Register() {
     try {
       const user_id = insertUserOffline(form);
       Alert.alert('Saved Offline', `User stored locally with ID:\n${user_id}`);
-      router.push('/login');
+      router.push('/authentication/login');
     } catch (error: any) {
       console.log('❌ Error saving user:', error);
       Alert.alert('Error', error.message || 'Failed to save user offline');
@@ -227,7 +227,7 @@ export default function Register() {
                   </View>
                 </View>
                 {/* Role Dropdown */}
-                <View style={{ zIndex: 1000, marginBottom: 4 }}>
+                <View style={{ marginBottom: 4 }}>
                   <DropDownPicker
                     open={open}
                     value={role}
@@ -236,42 +236,43 @@ export default function Register() {
                     setValue={setRole}
                     setItems={setRoleItems}
                     placeholder="Select Role"
-                    placeholderStyle={{ color: '#555' }}
+                    placeholderStyle={{ color: '#555', fontSize: 14 }}
                     style={{
-                      backgroundColor: '#f3f4f6',
-                      borderColor: '#f97316',
-                      borderRadius: 10,
+                      backgroundColor: '#fff',
+                      borderColor: '#e5e7eb',
+                      borderWidth: 1,
+                      borderRadius: 8,
+                      paddingHorizontal: 12,
                       height: 48,
                     }}
-                    textStyle={{ color: '#111827', fontSize: 14 }}
+                    textStyle={{ color: '#1c130d', fontSize: 14 }}
                     dropDownContainerStyle={{
-                      backgroundColor: '#f3f4f6',
-                      borderColor: '#f97316',
+                      backgroundColor: '#fff',
+                      borderColor: '#e5e7eb',
+                      borderWidth: 1,
+                      borderRadius: 8,
                     }}
-                    ArrowUpIconComponent={() => <Text style={tw`text-black`}>▲</Text>}
-                    ArrowDownIconComponent={() => <Text style={tw`text-black`}>▼</Text>}
+                    ArrowUpIconComponent={() => <Text style={{ color: '#1c130d' }}>▲</Text>}
+                    ArrowDownIconComponent={() => <Text style={{ color: '#1c130d' }}>▼</Text>}
                     showArrowIcon
                     listMode="SCROLLVIEW"
+                    zIndex={1000}
                   />
+                  <View style={{ minHeight: 18, marginTop: 2 }}>
+                    <Text style={{ color: '#ef4444', fontSize: 12 }}>
+                      {errors.role || ' '}
+                    </Text>
+                  </View>
                 </View>
+
                 {/* Phone Number */}
-                <View style={{ marginBottom: 8 }}>
-                  <TextInput
-                    style={{
-                      borderWidth: 1,
-                      borderColor: '#f97316',
-                      backgroundColor: '#f3f4f6',
-                      color: '#111827',
-                      borderRadius: 10,
-                      paddingVertical: 10,
-                      paddingHorizontal: 14,
-                      fontSize: 14,
-                    }}
-                    placeholder="Phone Number (Optional)"
-                    placeholderTextColor="#888"
-                    keyboardType="phone-pad"
+                <View style={{ marginBottom: 4 }}>
+                  <FormInput
                     value={form.phone_number}
                     onChangeText={(val) => handleChange('phone_number', val)}
+                    placeholder="Phone Number (Optional)"
+                    keyboardType="phone-pad"
+                    theme="light"
                   />
                   <View style={{ minHeight: 18, marginTop: 2 }}>
                     <Text style={{ color: '#ef4444', fontSize: 12 }}>
@@ -308,7 +309,7 @@ export default function Register() {
                   </Text>
                 </TouchableOpacity>
               </View>
-              <AuthFooter label="Already have an account?" link="/login" />
+              <AuthFooter label="Already have an account?" link="/authentication/login" />
             </View>
           </View>
         </KeyboardAwareScrollView>

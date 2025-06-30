@@ -112,3 +112,29 @@ export const verifyTables = () => {
   );
   console.log("🧩 Tables in DB:", result.map(row => row.name));
 };
+
+export const resetDatabase = () => {
+  const tables = [
+    'users',
+    'registrations',
+    'supplies',
+    'tasks',
+    'task_assignments',
+    'locations',
+    'alerts',
+    'sync_queue',
+    'sessions',
+  ];
+
+  db.execSync(
+    tables
+      .map(table => `DROP TABLE IF EXISTS ${table};`)
+      .join('\n')
+  );
+
+  console.log('🗑️ All tables dropped.');
+
+  // Optional: re-initialize the schema
+  initDatabase();
+  console.log('✅ Database reset and re-initialized.');
+};
