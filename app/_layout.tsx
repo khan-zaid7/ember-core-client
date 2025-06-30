@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { Stack } from 'expo-router';
-import { initDatabase, verifyTables } from '@/services/db';
+import { initDatabase, resetDatabase, verifyTables } from '@/services/db';
 import AuthGuard from '@/components/AuthGuard';
 import { AuthProvider } from '@/context/AuthContext';
 
@@ -11,6 +11,7 @@ export default function Layout() {
     if (Platform.OS !== 'web') {
       initDatabase();
       verifyTables();
+      // resetDatabase();
     }
   }, []);
 

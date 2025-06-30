@@ -1,6 +1,6 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
@@ -11,24 +11,56 @@ import {
   Switch,
   Alert,
   Modal,
+  TextInput,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DashboardHeader from '../components/Header';
 import { Footer, useFooterNavigation } from '@/components/Footer';
+import { updateUserOffline, getUserById } from '@/services/models/UserModel';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [location, setLocation] = useState('');
+
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    phone_number: '',
+    role: '',
+  });
+
   const [onlineStatus, setOnlineStatus] = useState(false);
-  const [gender, setGender] = useState('');
-  const [genderModalVisible, setGenderModalVisible] = useState(false);
+  const [location, setLocation] = useState('');
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
-  const [photo, setPhoto] = useState(
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuBiKUSy4WSblHPiDW8MZRUm_GKWsTVZq9CmgkSnQQ-xM1_7UtWrSlgQ7eR-lN1vEOqpBzhHI7VYyR3wNNHqKFMshFz_sGWOCZRRqhEYOxHnshI9ha9VEQPeBDosLMfiY5iNsjbQTUe35UQh-0sl_rrVZ71mXttBv8K9S6RUtG3gxKVC-DLbS0cpkZQJ2-NH1dc6iQw7ydhucua_WL8eM1tHFvfeTr8XaGjgBabhi6X5iNa36o08nC03TlkoNeTr8huY5sG_cMMUR40'
-  );
+
+  const fallbackUrl = 'https://lh3.googleusercontent.com/aida-public/AB6AX...'; // shortened
+
+  const [photo, setPhoto] = useState(fallbackUrl);
+  const [userId, setUserId] = useState<string | null>(null);
+  const { user } = useAuth();
+
+  // 🔁 DRY utility
+  const applyUserDetails = (details: any) => {
+    setForm({
+      name: details.name || '',
+      email: details.email || '',
+      phone_number: details.phone_number || '',
+      role: details.role || '',
+    });
+    setPhoto(details.image_url || fallbackUrl);
+  };
+
+  useEffect(() => {
+    const loadUserDetails = async () => {
+      if (user?.user_id) {
+        setUserId(user.user_id);
+        const details = await getUserById(user.user_id);
+        applyUserDetails(details);
+      }
+    };
+    loadUserDetails();
+  }, [user?.user_id]);
 
   const handleAddPhoto = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -48,9 +80,33 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleSave = () => {
-    Alert.alert('Saved', 'Profile has been saved successfully!');
+  const handleSave = async () => {
+    if (!userId) {
+      Alert.alert('Error', 'User session not found.');
+      return;
+    }
+
+    try {
+      await updateUserOffline({
+        user_id: userId,
+        name: form.name.trim(),
+        email: form.email.trim(),
+        role: form.role.trim().toLowerCase(),
+        phone_number: form.phone_number.trim(),
+        image_uri: photo,
+      });
+
+      const updated = await getUserById(userId);
+      applyUserDetails(updated);
+
+      Alert.alert('Success', 'Profile has been saved successfully!');
+    } catch (err: any) {
+      console.error('❌ Failed to save user:', err);
+      Alert.alert('Error', err.message || 'Something went wrong while saving.');
+    }
   };
+
+
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -84,15 +140,43 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
             <Text style={{ fontSize: 22, fontWeight: 'bold', marginTop: 8, color: '#181411' }}>
-              Liam Bennett
+              {form.name}
             </Text>
-            <Text style={{ fontSize: 16, color: '#8a7560' }}>Project Manager</Text>
+            <Text style={{ fontSize: 16, color: '#8a7560' }}>
+              {form.role ? form.role.charAt(0).toUpperCase() + form.role.slice(1).toLowerCase() : ''}
+            </Text>
+
           </View>
+
+          {/* Name */}
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontSize: 16, fontWeight: '500', color: '#181411', marginBottom: 4 }}>Name</Text>
+            <View
+              style={{
+                borderWidth: 1,
+                borderColor: '#e5e7eb',
+                borderRadius: 8,
+                backgroundColor: '#fff',
+                height: 48,
+                justifyContent: 'center',
+                paddingHorizontal: 12,
+              }}
+            >
+              <TextInput
+                value={form.name}
+                onChangeText={(text) => setForm((prev) => ({ ...prev, name: text }))}
+                placeholder="Enter name"
+                placeholderTextColor="#9ca3af"
+                style={{ fontSize: 16, color: '#181411' }}
+              />
+            </View>
+          </View>
+
 
           {/* Email */}
           <View style={{ marginBottom: 16 }}>
             <Text style={{ fontSize: 16, fontWeight: '500', color: '#181411', marginBottom: 4 }}>Email</Text>
-            <TouchableOpacity
+            <View
               style={{
                 borderWidth: 1,
                 borderColor: '#e5e7eb',
@@ -102,18 +186,23 @@ export default function ProfileScreen() {
                 justifyContent: 'center',
                 paddingHorizontal: 12,
               }}
-              onPress={() => Alert.prompt('Enter Email', '', setEmail)}
             >
-              <Text style={{ color: email ? '#181411' : '#64748b' }}>
-                {email || 'Enter email'}
-              </Text>
-            </TouchableOpacity>
+              <TextInput
+                value={form.email}
+                onChangeText={(text) => setForm((prev) => ({ ...prev, email: text }))}
+                placeholder="Enter email"
+                placeholderTextColor="#9ca3af"
+                keyboardType="email-address"
+                style={{ fontSize: 16, color: '#181411' }}
+              />
+            </View>
           </View>
+
 
           {/* Phone */}
           <View style={{ marginBottom: 16 }}>
             <Text style={{ fontSize: 16, fontWeight: '500', color: '#181411', marginBottom: 4 }}>Phone</Text>
-            <TouchableOpacity
+            <View
               style={{
                 borderWidth: 1,
                 borderColor: '#e5e7eb',
@@ -123,36 +212,16 @@ export default function ProfileScreen() {
                 justifyContent: 'center',
                 paddingHorizontal: 12,
               }}
-              onPress={() => Alert.prompt('Enter Phone', '', setPhone)}
             >
-              <Text style={{ color: phone ? '#181411' : '#64748b' }}>
-                {phone || 'Enter phone'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Gender */}
-          <View style={{ marginBottom: 16 }}>
-            <Text style={{ fontSize: 16, fontWeight: '500', color: '#181411', marginBottom: 4 }}>Gender</Text>
-            <TouchableOpacity
-              onPress={() => setGenderModalVisible(true)}
-              style={{
-                borderWidth: 1,
-                borderColor: '#e5e7eb',
-                borderRadius: 8,
-                backgroundColor: '#fff',
-                height: 48,
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingHorizontal: 12,
-                justifyContent: 'space-between',
-              }}
-            >
-              <Text style={{ fontSize: 16, color: gender ? '#181411' : '#64748b' }}>
-                {gender || 'Select Gender'}
-              </Text>
-              <Ionicons name="chevron-down" size={24} color="#64748b" />
-            </TouchableOpacity>
+              <TextInput
+                value={form.phone_number}
+                onChangeText={(text) => setForm((prev) => ({ ...prev, phone_number: text }))}
+                placeholder="Enter phone number"
+                placeholderTextColor="#9ca3af"
+                keyboardType="phone-pad"
+                style={{ fontSize: 16, color: '#181411' }}
+              />
+            </View>
           </View>
 
           {/* Location */}
@@ -230,35 +299,6 @@ export default function ProfileScreen() {
 
         <Footer activeTab={activeTab} onTabPress={handleTabPress} />
       </View>
-
-      {/* Gender Modal */}
-      <Modal visible={genderModalVisible} transparent animationType="fade">
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.2)',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-          activeOpacity={1}
-          onPressOut={() => setGenderModalVisible(false)}
-        >
-          <View style={{ backgroundColor: '#fff', borderRadius: 12, paddingVertical: 12, width: 260 }}>
-            {['Male', 'Female', 'Other'].map((option) => (
-              <TouchableOpacity
-                key={option}
-                onPress={() => {
-                  setGender(option);
-                  setGenderModalVisible(false);
-                }}
-                style={{ paddingVertical: 16, paddingHorizontal: 18, alignItems: 'flex-start' }}
-              >
-                <Text style={{ fontSize: 18, color: '#1e293b' }}>{option}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
 
       {/* Settings Modal */}
       <Modal visible={settingsModalVisible} transparent animationType="fade">
