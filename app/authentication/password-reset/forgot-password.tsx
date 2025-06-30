@@ -9,10 +9,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import api from '@/src/utils/axiosConfig';
-import EmberLogo from '../components/EmberLogo';
-import { FormInput } from '../components/FormInput';
-import LoadingSpinner from '../components/LoadingSpinner';
-import SuccessAlert from '../components/SuccessAlert';
+import EmberLogo from '@/components/EmberLogo';
+import { FormInput } from '@/components/FormInput';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import SuccessAlert from '@/components/SuccessAlert';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -43,7 +43,7 @@ export default function ForgotPassword() {
 
       // Optional: navigate after delay
       setTimeout(() => {
-        router.push({ pathname: '/verify-otp', params: { email } });
+        router.push({ pathname: '/authentication/password-reset/verify-otp', params: { email } });
       }, 1500);
     } catch (err: any) {
       const message =
@@ -125,7 +125,7 @@ export default function ForgotPassword() {
               )}
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => router.push('/login')}
+              onPress={() => router.push('/authentication/login')}
               style={{ marginTop: 12 }}
             >
               <Text style={{ color: '#f97316', textAlign: 'center', fontWeight: '600', fontSize: 15 }}>

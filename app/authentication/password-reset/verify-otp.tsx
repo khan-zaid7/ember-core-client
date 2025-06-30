@@ -5,9 +5,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import tw from 'twrnc';
 
-import EmberLogo from '../components/EmberLogo';
-import { FormInput } from '../components/FormInput';
-import LoadingSpinner from '../components/LoadingSpinner';
+import EmberLogo from '@/components/EmberLogo';
+import { FormInput } from '@/components/FormInput';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import api from '@/src/utils/axiosConfig';
 
 export default function VerifyOtp() {
@@ -31,13 +31,13 @@ export default function VerifyOtp() {
         {
           text: 'OK',
           onPress: () => {
-            router.replace({ pathname: '/reset-password', params: { email } });
+            router.replace({ pathname: '/authentication/password-reset/reset-password', params: { email } });
           },
         },
       ]);
       if (response.status === 200) {
         router.replace({
-          pathname: '/reset-password', params: { email }});
+          pathname: '/authentication/password-reset/reset-password', params: { email }});
       }
     } catch (err: any) {
       const message = err?.response?.data?.message || 'OTP verification failed.';

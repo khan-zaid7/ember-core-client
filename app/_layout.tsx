@@ -1,10 +1,10 @@
 ﻿// app/_layout.tsx
-import { useEffect } from 'react';
-import { View, Platform } from 'react-native';
-import { Slot } from 'expo-router';
+import React, { useEffect } from 'react';
+import { Platform } from 'react-native';
+import { Stack } from 'expo-router';
 import { initDatabase, verifyTables } from '@/services/db';
 import AuthGuard from '@/components/AuthGuard';
-import { AuthProvider } from '@/context/AuthContext'; // ⬅️ You forgot this before
+import { AuthProvider } from '@/context/AuthContext';
 
 export default function Layout() {
   useEffect(() => {
@@ -15,11 +15,16 @@ export default function Layout() {
   }, []);
 
   return (
-    <AuthProvider> 
+    <AuthProvider>
       <AuthGuard>
-        <View style={{ flex: 1 }}>
-          <Slot />
-        </View>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            animation: 'slide_from_right', 
+            gestureEnabled: true,
+            contentStyle: { backgroundColor: '#fcfaf8' },
+          }}
+        />
       </AuthGuard>
     </AuthProvider>
   );

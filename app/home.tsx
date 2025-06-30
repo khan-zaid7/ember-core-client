@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import DashboardFooter from '../components/Footer';
+import { Footer, useFooterNavigation } from '@/components/Footer';
 import DashboardHeader from '../components/Header';
 import SettingsComponent from '../components/SettingsComponent';
 
@@ -55,6 +55,7 @@ const volunteerStats = {
 export default function HomeDashboard() {
   const router = useRouter();
   const [settingsVisible, setSettingsVisible] = useState(false);
+  const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsVisible(true));
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <DashboardHeader title="Ember Core" onSettingsPress={() => setSettingsVisible(true)} />
@@ -76,7 +77,7 @@ export default function HomeDashboard() {
                 <Text style={{ color: '#161412', fontSize: 12, fontWeight: '500', marginRight: 4, paddingVertical: 0 }}>Go</Text>
               </TouchableOpacity>
             </View>
-            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16/9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16 / 9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
               <MaterialIcons name="person-add-alt-1" size={48} color="#f97316" />
             </View>
           </View>
@@ -87,12 +88,12 @@ export default function HomeDashboard() {
                 <Text style={{ color: '#161412', fontSize: 16, fontWeight: 'bold' }}>Medical Supply Management</Text>
                 <Text style={{ color: '#81736a', fontSize: 14, marginTop: 2 }}>Manage medical supplies offline</Text>
               </View>
-              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: navigate to medical supply */}}>
+              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: navigate to medical supply */ }}>
                 <MaterialIcons name="arrow-forward" size={14} color="#161412" />
                 <Text style={{ color: '#161412', fontSize: 12, fontWeight: '500', marginRight: 4, paddingVertical: 0 }}>Go</Text>
               </TouchableOpacity>
             </View>
-            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16/9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16 / 9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
               <MaterialIcons name="medical-services" size={48} color="#f97316" />
             </View>
           </View>
@@ -103,12 +104,12 @@ export default function HomeDashboard() {
                 <Text style={{ color: '#161412', fontSize: 16, fontWeight: 'bold' }}>View Unsynced Records</Text>
                 <Text style={{ color: '#81736a', fontSize: 14, marginTop: 2 }}>View records not yet synced</Text>
               </View>
-              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: navigate to unsynced records */}}>
+              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: navigate to unsynced records */ }}>
                 <MaterialIcons name="arrow-forward" size={14} color="#161412" />
                 <Text style={{ color: '#161412', fontSize: 12, fontWeight: '500', marginRight: 4, paddingVertical: 0 }}>Go</Text>
               </TouchableOpacity>
             </View>
-            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16/9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16 / 9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
               <MaterialIcons name="sync-problem" size={48} color="#f97316" />
             </View>
           </View>
@@ -119,12 +120,12 @@ export default function HomeDashboard() {
                 <Text style={{ color: '#161412', fontSize: 16, fontWeight: 'bold' }}>Sync Data</Text>
                 <Text style={{ color: '#81736a', fontSize: 14, marginTop: 2 }}>Synchronize data with the server</Text>
               </View>
-              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: sync data */}}>
+              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: sync data */ }}>
                 <MaterialIcons name="arrow-forward" size={14} color="#161412" />
                 <Text style={{ color: '#161412', fontSize: 12, fontWeight: '500', marginRight: 4, paddingVertical: 0 }}>Go</Text>
               </TouchableOpacity>
             </View>
-            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16/9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16 / 9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
               <MaterialIcons name="sync" size={48} color="#f97316" />
             </View>
           </View>
@@ -139,12 +140,12 @@ export default function HomeDashboard() {
                 <Text style={{ color: '#161412', fontSize: 16, fontWeight: 'bold' }}>Volunteer Actions</Text>
                 <Text style={{ color: '#81736a', fontSize: 14, marginTop: 2 }}>Actions available for volunteers</Text>
               </View>
-              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: volunteer actions */}}>
+              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: volunteer actions */ }}>
                 <MaterialIcons name="arrow-forward" size={14} color="#161412" />
                 <Text style={{ color: '#161412', fontSize: 12, fontWeight: '500', marginRight: 4, paddingVertical: 0 }}>Go</Text>
               </TouchableOpacity>
             </View>
-            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16/9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16 / 9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
               <MaterialIcons name="volunteer-activism" size={48} color="#f97316" />
             </View>
           </View>
@@ -155,26 +156,18 @@ export default function HomeDashboard() {
                 <Text style={{ color: '#161412', fontSize: 16, fontWeight: 'bold' }}>Admin Actions</Text>
                 <Text style={{ color: '#81736a', fontSize: 14, marginTop: 2 }}>Actions available for administrators</Text>
               </View>
-              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: admin actions */}}>
+              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: admin actions */ }}>
                 <MaterialIcons name="arrow-forward" size={14} color="#161412" />
                 <Text style={{ color: '#161412', fontSize: 12, fontWeight: '500', marginRight: 4, paddingVertical: 0 }}>Go</Text>
               </TouchableOpacity>
             </View>
-            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16/9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16 / 9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
               <MaterialIcons name="admin-panel-settings" size={48} color="#f97316" />
             </View>
           </View>
         </View>
       </ScrollView>
-      <DashboardFooter
-        activeTab="dashboard"
-        onTabPress={(tab) => {
-          if (tab === 'dashboard') return;
-          if (tab === 'settings') setSettingsVisible(true);
-          else if (tab === 'records') {/* TODO: navigate to records */}
-          else if (tab === 'map') {/* TODO: navigate to map */}
-        }}
-      />
+      <Footer activeTab={activeTab} onTabPress={handleTabPress} />
     </SafeAreaView>
   );
 }

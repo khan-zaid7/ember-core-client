@@ -15,11 +15,11 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import api from '@/src/utils/axiosConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React from 'react';
-import AuthFooter from '../components/AuthFooter';
-import EmberLogo from '../components/EmberLogo';
-import { FormInput } from '../components/FormInput';
-import SuccessAlert from '../components/SuccessAlert';
-import { verticalScale } from '../src/utils/reponsive';
+import AuthFooter from '@/components/AuthFooter';
+import EmberLogo from '@/components/EmberLogo';
+import { FormInput } from '@/components/FormInput';
+import SuccessAlert from '@/components/SuccessAlert';
+import { verticalScale } from '@/src/utils/reponsive';
 import { loginUserOffline } from '@/services/models/UserModel';
 import { useAuth } from '@/context/AuthContext';
 
@@ -203,7 +203,7 @@ export default function Login() {
                 </View>
                 <View style={{ marginBottom: 12 }}>
                   <Link
-                    href="/forgot-password"
+                    href="/authentication/password-reset/forgot-password"
                     style={tw`text-orange-500 text-right text-sm`}
                   >
                     Forgot Password?
@@ -237,7 +237,7 @@ export default function Login() {
                   </Text>
                 </TouchableOpacity>
               </View>
-              <AuthFooter label="Don't have an account?" link="/register" />
+              <AuthFooter label="Don't have an account?" link="/authentication/register" />
             </View>
           </View>
         </SafeAreaView>
