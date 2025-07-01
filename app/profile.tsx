@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DashboardHeader from '../components/Header';
-import DashboardFooter from '../components/Footer';
+import { Footer, useFooterNavigation } from '@/components/Footer';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -25,7 +25,7 @@ export default function ProfileScreen() {
   const [gender, setGender] = useState('');
   const [genderModalVisible, setGenderModalVisible] = useState(false);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
-  const [footerTab, setFooterTab] = useState('dashboard');
+  const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
   const [photo, setPhoto] = useState(
     'https://lh3.googleusercontent.com/aida-public/AB6AXuBiKUSy4WSblHPiDW8MZRUm_GKWsTVZq9CmgkSnQQ-xM1_7UtWrSlgQ7eR-lN1vEOqpBzhHI7VYyR3wNNHqKFMshFz_sGWOCZRRqhEYOxHnshI9ha9VEQPeBDosLMfiY5iNsjbQTUe35UQh-0sl_rrVZ71mXttBv8K9S6RUtG3gxKVC-DLbS0cpkZQJ2-NH1dc6iQw7ydhucua_WL8eM1tHFvfeTr8XaGjgBabhi6X5iNa36o08nC03TlkoNeTr8huY5sG_cMMUR40'
   );
@@ -228,13 +228,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </ScrollView>
 
-        <DashboardFooter
-          activeTab={footerTab}
-          onTabPress={(tab) => {
-            setFooterTab(tab);
-            if (tab === 'settings') setSettingsModalVisible(true);
-          }}
-        />
+        <Footer activeTab={activeTab} onTabPress={handleTabPress} />
       </View>
 
       {/* Gender Modal */}

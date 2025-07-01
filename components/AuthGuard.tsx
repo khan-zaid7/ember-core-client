@@ -8,7 +8,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
 
-  const publicRoutes = ['/', '/login', '/register', '/forgot-password'];
+  const publicRoutes = [
+  '/',
+  '/authentication/login',
+  '/authentication/register',
+  '/authentication/password-reset/forgot-password',
+  '/authentication/password-reset/reset-password',
+  '/authentication/password-reset/verify-opt',
+];
+
 
   const normalizedPath = pathname.replace(/\/+$/, ''); // strip trailing slashes
   const isPublic = publicRoutes.includes(normalizedPath);
@@ -25,7 +33,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   if (user && isPublic) return <Redirect href="/home" />;
 
   // 🔒 Redirect unauthenticated users away from protected pages
-  if (!user && !isPublic) return <Redirect href="/login" />;
+  if (!user && !isPublic) return <Redirect href="/authentication/login" />;
 
   return <>{children}</>;
 }

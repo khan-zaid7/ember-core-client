@@ -5,7 +5,7 @@ import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import DashboardFooter from '../../components/Footer';
+import { Footer, useFooterNavigation } from '@/components/Footer';
 import { FormInput } from '../../components/FormInput';
 import DashboardHeader from '../../components/Header';
 
@@ -75,9 +75,9 @@ export default function RegisterOffline() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [showSuccess, setShowSuccess] = useState(false);
   const [genderModalVisible, setGenderModalVisible] = useState(false);
-  const [footerTab, setFooterTab] = useState('dashboard');
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [locationModalVisible, setLocationModalVisible] = useState(false);
+  const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
   const router = useRouter();
 
   const handleChange = (key: keyof RegisterForm, value: string) => {
@@ -109,48 +109,48 @@ export default function RegisterOffline() {
     setForm(prev => ({ ...prev, timestamp: getCurrentTimestamp() }));
   };
 
-const handleSave = () => {
-  if (!validateForm()) return;
+  const handleSave = () => {
+    if (!validateForm()) return;
 
-  if (!user || !user.user_id) {
-    Alert.alert('Error', 'No user is logged in');
-    return;
-  }
+    if (!user || !user.user_id) {
+      Alert.alert('Error', 'No user is logged in');
+      return;
+    }
 
-  try {
-    const registrationId = insertRegistrationOffline({
-      ...form,
-      userId: user.user_id, // inject from session
-    });
+    try {
+      const registrationId = insertRegistrationOffline({
+        ...form,
+        userId: user.user_id, // inject from session
+      });
 
-    // Fetch inserted instance and log it
-    const inserted = db.getFirstSync<any>(
-      `SELECT * FROM registrations WHERE registration_id = ?`,
-      [registrationId]
-    );
-    console.log('✅ Inserted Registration:', inserted);
+      // Fetch inserted instance and log it
+      const inserted = db.getFirstSync<any>(
+        `SELECT * FROM registrations WHERE registration_id = ?`,
+        [registrationId]
+      );
+      console.log('✅ Inserted Registration:', inserted);
 
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
-    setForm(initialForm);
-  } catch (error: any) {
-    Alert.alert('Error', error.message || 'Something went wrong');
-  }
-};
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+      setForm(initialForm);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Something went wrong');
+    }
+  };
 
   // Top bar color logic
   const topBarColor = isFormValid ? '#22c55e' : '#ef4444'; // green-500 or red-500
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-      <DashboardHeader 
-        title="Ember Core" 
-        showSettings={true} 
+      <DashboardHeader
+        title="Register Patients"
+        showSettings={true}
         onSettingsPress={() => setSettingsModalVisible(true)}
-        onBackPress={() => router.push('/home')}
+        onBackPress={() => router.back()}
       />
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-        <View style={{ flex: 1, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 40, paddingBottom: 40, minHeight: 600 }}>
+        <View style={{ flex: 1, justifyContent: 'flex-start', alignItems: 'center', paddingBottom: 40, minHeight: 600 }}>
           <View style={{ width: '100%', maxWidth: 480, alignItems: 'center', paddingHorizontal: 0, margin: 0 }}>
             <View style={{
               backgroundColor: '#fff',
@@ -172,32 +172,32 @@ const handleSave = () => {
                 </Animatable.View>
               )}
               {/* Personal Info Section */}
-              <Text style={{ fontSize: 22, fontWeight: '700', color: '#334155', marginBottom: 16, marginTop: 15 }}>Personal Info</Text>
-              <View style={{ marginBottom: 18, height: 54, justifyContent: 'center' }}> 
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#334155', marginBottom: 16, marginTop: 15 }}>Personal Info</Text>
+              <View style={{ marginBottom: 18, height: 54, justifyContent: 'center' }}>
                 <FormInput
                   value={form.fullName}
                   onChangeText={text => handleChange('fullName', text)}
                   placeholder="Person Name"
                   theme="light"
-                  fontSize={18}
+                  fontSize={16}
                 />
                 <View style={{ minHeight: 18, marginTop: 2 }}>
-                  <Text style={{ color: '#ef4444', fontSize:18 }}>
+                  <Text style={{ color: '#ef4444', fontSize: 18 }}>
                     {errors.fullName || ' '}
                   </Text>
                 </View>
               </View>
-              <View style={{ marginBottom: 18, height: 54, justifyContent: 'center' }}> 
+              <View style={{ marginBottom: 18, height: 54, justifyContent: 'center' }}>
                 <FormInput
                   value={form.age}
                   onChangeText={text => handleChange('age', text)}
                   placeholder="Age"
                   theme="light"
                   keyboardType="numeric"
-                  fontSize={18}
+                  fontSize={16}
                 />
                 <View style={{ minHeight: 18, marginTop: 2 }}>
-                  <Text style={{ color: '#ef4444', fontSize: 18 }}>
+                  <Text style={{ color: '#ef4444', fontSize: 16 }}>
                     {errors.age || ' '}
                   </Text>
                 </View>
@@ -222,7 +222,7 @@ const handleSave = () => {
                     activeOpacity={0.8}
                     style={{ flex: 1, height: '100%', justifyContent: 'center' }}
                   >
-                    <Text style={{ color: form.gender ? '#1e293b' : '#64748b', fontSize: 18 }}>
+                    <Text style={{ color: form.gender ? '#1e293b' : '#64748b', fontSize: 16 }}>
                       {form.gender || 'Select Gender'}
                     </Text>
                   </TouchableOpacity>
@@ -255,7 +255,7 @@ const handleSave = () => {
                           }}
                           style={{ paddingVertical: 16, paddingHorizontal: 18, alignItems: 'flex-start' }}
                         >
-                          <Text style={{ fontSize: 18, color: '#1e293b' }}>{option}</Text>
+                          <Text style={{ fontSize: 16, color: '#1e293b' }}>{option}</Text>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -270,7 +270,7 @@ const handleSave = () => {
               {/* Divider */}
               <View style={{ height: 1, backgroundColor: '#f1f5f9', marginBottom: 18 }} />
               {/* Location Dropdown Section */}
-              <Text style={{ fontSize: 22, fontWeight: '700', color: '#334155', marginBottom: 16 }}>Location</Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#334155', marginBottom: 16 }}>Location</Text>
               <View style={{ marginBottom: 18, height: 54, justifyContent: 'center' }}>
                 <View
                   style={{
@@ -290,7 +290,7 @@ const handleSave = () => {
                     activeOpacity={0.8}
                     style={{ flex: 1, height: '100%', justifyContent: 'center' }}
                   >
-                    <Text style={{ color: form.locationId ? '#1e293b' : '#64748b', fontSize: 18 }}>
+                    <Text style={{ color: form.locationId ? '#1e293b' : '#64748b', fontSize: 16 }}>
                       {form.locationId || 'Select Location'}
                     </Text>
                   </TouchableOpacity>
@@ -323,7 +323,7 @@ const handleSave = () => {
                           }}
                           style={{ paddingVertical: 16, paddingHorizontal: 18, alignItems: 'flex-start' }}
                         >
-                          <Text style={{ fontSize: 18, color: '#1e293b' }}>{option}</Text>
+                          <Text style={{ fontSize: 16, color: '#1e293b' }}>{option}</Text>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -338,18 +338,18 @@ const handleSave = () => {
               {/* Divider */}
               <View style={{ height: 1, backgroundColor: '#f1f5f9', marginBottom: 18 }} />
               {/* Timestamp Section */}
-              <Text style={{ fontSize: 22, fontWeight: '700', color: '#334155', marginBottom: 16 }}>Timestamp</Text>
-              <View style={{ marginBottom: 24, flexDirection: 'row', alignItems: 'center', gap: 12, height: 54 }}> 
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#334155', marginBottom: 16 }}>Timestamp</Text>
+              <View style={{ marginBottom: 24, flexDirection: 'row', alignItems: 'center', gap: 12, height: 54 }}>
                 <View style={{ flex: 1, height: 54, justifyContent: 'center' }}>
                   <FormInput
                     value={form.timestamp}
-                    onChangeText={() => {}}
+                    onChangeText={() => { }}
                     placeholder="Timestamp"
                     theme="light"
                     keyboardType="default"
                     secureTextEntry={false}
                     editable={false}
-                    fontSize={18}
+                    fontSize={16}
                   />
                   <View style={{ minHeight: 18, marginTop: 2 }}>
                     <Text style={{ color: '#ef4444', fontSize: 14 }}>
@@ -380,7 +380,7 @@ const handleSave = () => {
                 }}
                 disabled={!isFormValid}
               >
-                <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '700', fontSize: 18}}>
+                <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '700', fontSize: 16 }}>
                   Save
                 </Text>
               </TouchableOpacity>
@@ -388,13 +388,7 @@ const handleSave = () => {
           </View>
         </View>
       </ScrollView>
-      <DashboardFooter
-        activeTab={footerTab}
-        onTabPress={tab => {
-          setFooterTab(tab);
-          if (tab === 'settings') setSettingsModalVisible(true);
-        }}
-      />
+      <Footer activeTab={activeTab} onTabPress={handleTabPress} />
       <SettingsComponent visible={settingsModalVisible} onClose={() => setSettingsModalVisible(false)} />
     </SafeAreaView>
   );
