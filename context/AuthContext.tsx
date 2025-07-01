@@ -1,24 +1,31 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getSessionFromDB, removeSessionFromDB, saveSessionToDB } from '../services/models/SessionModel';
+import {
+  getSessionFromDB,
+  removeSessionFromDB,
+  saveSessionToDB,
+} from '../services/models/SessionModel';
 
 export type AuthUser = {
   user_id: string;
   name: string;
   email: string;
   role: string;
+  phone_number: string;
 };
 
 type AuthContextType = {
   user: AuthUser | null;
   login: (user: AuthUser) => void;
   logout: () => void;
+  refresh: () => Promise<void>;
   loading: boolean;
 };
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  login: () => { },
-  logout: () => { },
+  login: () => {},
+  logout: () => {},
+  refresh: async () => {},
   loading: true,
 });
 
@@ -38,13 +45,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } finally {
         setLoading(false);
       }
-
-
     })();
   }, []);
 
   const login = async (userData: AuthUser) => {
-    console.log("the fucnction reaches here !!!!!")
     await saveSessionToDB(userData);
     setUser(userData);
   };
@@ -54,8 +58,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
   };
 
+  const refresh = async () => {
+    try {
+      const session = await getSessionFromDB();
+      if (session) setUser(session);
+    } catch (err) {
+      console.error('⚠️ Failed to refresh session:', err);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, refresh, loading }}>
       {children}
     </AuthContext.Provider>
   );

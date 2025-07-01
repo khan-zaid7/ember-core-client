@@ -15,6 +15,7 @@ export const initDatabase = () => {
       token_expire TEXT,
       created_at TEXT,
       updated_at TEXT,
+      image_url TEXT,  
       synced INTEGER DEFAULT 0
     );
 
@@ -100,6 +101,7 @@ export const initDatabase = () => {
       name TEXT,
       email TEXT,
       role TEXT,
+      phone_number TEXT,
       created_at TEXT
     );
     
