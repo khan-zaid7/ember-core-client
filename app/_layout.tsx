@@ -5,13 +5,18 @@ import { Stack } from 'expo-router';
 import { initDatabase, resetDatabase, verifyTables } from '@/services/db';
 import AuthGuard from '@/components/AuthGuard';
 import { AuthProvider } from '@/context/AuthContext';
+import { useSyncTrigger } from '@/hooks/useSyncTrigger';
 
 export default function Layout() {
+  // sync trigger 
+      useSyncTrigger();
   useEffect(() => {
     if (Platform.OS !== 'web') {
       initDatabase();
       verifyTables();
       // resetDatabase();
+
+      
     }
   }, []);
 
