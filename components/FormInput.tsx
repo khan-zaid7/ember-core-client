@@ -20,6 +20,7 @@ interface FormInputProps {
   theme?: 'light' | 'dark';
   editable?: boolean;
   fontSize?: number;
+  height?: number;
 }
 
 export const FormInput: React.FC<FormInputProps> = ({
@@ -34,6 +35,7 @@ export const FormInput: React.FC<FormInputProps> = ({
   theme = 'dark',
   editable = true,
   fontSize,
+  height,
 }) => {
   const isLight = theme === 'light';
 
@@ -41,11 +43,12 @@ export const FormInput: React.FC<FormInputProps> = ({
     <View style={tw`relative`}>
       <TextInput
         style={tw.style(
-          'rounded-xl px-4 py-3.5 pr-12 border',
+          'rounded-xl px-4 pr-12 border',
           isLight
             ? 'bg-white text-black border-gray-300'
             : 'bg-[#111827] text-white border-orange-500',
-          fontSize ? { fontSize } : {}
+          fontSize ? { fontSize } : {},
+          height ? { height, paddingVertical: 0 } : { paddingVertical: 14 }
         )}
         placeholder={placeholder}
         placeholderTextColor={isLight ? '#555' : '#aaa'}
