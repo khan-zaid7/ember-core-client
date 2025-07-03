@@ -204,6 +204,6 @@ export const updateUserOffline = async (user: {
   return true;
 };
 
-export const getUserById = async (user_id: string) => {
+export const getUserById = (user_id: string) => {
   return db.getFirstSync<any>(`SELECT * FROM users WHERE user_id = ?`, [user_id]);
 };

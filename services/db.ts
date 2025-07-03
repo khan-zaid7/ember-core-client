@@ -15,8 +15,9 @@ export const initDatabase = () => {
       token_expire TEXT,
       created_at TEXT,
       updated_at TEXT,
-      image_url TEXT,  
-      synced INTEGER DEFAULT 0
+      image_url TEXT,
+      synced INTEGER DEFAULT 0,
+      sync_status_message TEXT
     );
 
     CREATE TABLE IF NOT EXISTS registrations (
@@ -27,6 +28,7 @@ export const initDatabase = () => {
       gender TEXT,
       location_id TEXT,
       timestamp TEXT,
+      updated_at TEXT,
       synced INTEGER DEFAULT 0,
       sync_status_message TEXT
     );
@@ -39,8 +41,10 @@ export const initDatabase = () => {
       expiry_date TEXT,
       location_id TEXT,
       timestamp TEXT,
+      updated_at TEXT,
       synced INTEGER DEFAULT 0,
-      status TEXT
+      status TEXT,
+      sync_status_message TEXT
     );
 
     CREATE TABLE IF NOT EXISTS tasks (
@@ -51,7 +55,10 @@ export const initDatabase = () => {
       priority TEXT,
       created_by TEXT NOT NULL,
       due_date TEXT,
-      created_at TEXT
+      created_at TEXT,
+      updated_at TEXT,
+      synced INTEGER DEFAULT 0,
+      sync_status_message TEXT
     );
 
     CREATE TABLE IF NOT EXISTS task_assignments (
@@ -60,7 +67,10 @@ export const initDatabase = () => {
       user_id TEXT NOT NULL,
       assigned_at TEXT,
       status TEXT,
-      feedback TEXT
+      feedback TEXT,
+      updated_at TEXT,
+      synced INTEGER DEFAULT 0,
+      sync_status_message TEXT
     );
 
     CREATE TABLE IF NOT EXISTS locations (
@@ -71,7 +81,10 @@ export const initDatabase = () => {
       latitude REAL,
       longitude REAL,
       added_at TEXT,
-      description TEXT
+      description TEXT,
+      updated_at TEXT,
+      synced INTEGER DEFAULT 0,
+      sync_status_message TEXT
     );
 
     CREATE TABLE IF NOT EXISTS alerts (
@@ -82,7 +95,10 @@ export const initDatabase = () => {
       description TEXT,
       priority TEXT,
       timestamp TEXT,
-      sent_via TEXT
+      updated_at TEXT,
+      sent_via TEXT,
+      synced INTEGER DEFAULT 0,
+      sync_status_message TEXT
     );
 
     CREATE TABLE IF NOT EXISTS sync_queue (
@@ -92,7 +108,10 @@ export const initDatabase = () => {
       status TEXT,
       retry_count INTEGER DEFAULT 0,
       last_attempt_at TEXT,
-      created_by TEXT
+      created_by TEXT,
+    conflict_field TEXT,     
+      latest_data TEXT,
+      updated_at TEXT     
     );
 
     CREATE TABLE IF NOT EXISTS sessions (
@@ -104,7 +123,6 @@ export const initDatabase = () => {
       phone_number TEXT,
       created_at TEXT
     );
-    
   `);
 };
 
