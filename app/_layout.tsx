@@ -1,11 +1,11 @@
 ﻿// app/_layout.tsx
-import React, { useEffect } from 'react';
-import { Platform } from 'react-native';
-import { Stack } from 'expo-router';
-import { initDatabase, resetDatabase, verifyTables } from '@/services/db';
 import AuthGuard from '@/components/AuthGuard';
 import { AuthProvider } from '@/context/AuthContext';
 import { useSyncTrigger } from '@/hooks/useSyncTrigger';
+import { initDatabase, verifyTables } from '@/services/db';
+import { Stack } from 'expo-router';
+import React, { useEffect } from 'react';
+import { Platform } from 'react-native';
 
 export default function Layout() {
   // sync trigger 
