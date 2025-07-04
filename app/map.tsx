@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Text,
   Image,
-  Modal,
 } from "react-native";
 import MapView, { Marker, Callout } from "react-native-maps";
 import * as Location from "expo-location";
@@ -15,6 +14,7 @@ import { useRouter } from "expo-router";
 import DashboardHeader from "../components/Header";
 import { Footer, useFooterNavigation } from "@/components/Footer";
 import { MaterialIcons } from "@expo/vector-icons";
+import SettingsComponent from "../components/SettingsComponent"; // ✅ Import the same SettingsComponent
 
 export default function MapScreen() {
   const router = useRouter();
@@ -28,9 +28,6 @@ export default function MapScreen() {
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const userMarkerRef = useRef<any>(null);
 
-
-
-  // ✅ Controlled region state
   const [mapRegion, setMapRegion] = useState({
     latitude: 37.78825,
     longitude: -122.4324,
@@ -110,19 +107,21 @@ export default function MapScreen() {
         description: "This is your current location.",
       };
 
-      setLocations((prev) => [...prev, newLocation]);
+      setLocations((prev) => [
+        ...prev.filter((loc) => loc.type !== "user"),
+        newLocation,
+      ]);
 
-      // ✅ Update controlled region (this avoids tile blanking)
       setMapRegion({
         latitude,
         longitude,
         latitudeDelta: 0.002,
         longitudeDelta: 0.002,
       });
-      setTimeout(() => {
-  userMarkerRef.current?.showCallout();
-}, 500);
 
+      setTimeout(() => {
+        userMarkerRef.current?.showCallout();
+      }, 500);
     } catch (error) {
       console.error("❌ Error getting location:", error);
       alert("Could not get location.");
@@ -145,13 +144,18 @@ export default function MapScreen() {
         title="Map"
         showSettings
         onSettingsPress={() => setSettingsModalVisible(true)}
-        onBackPress={() => router.back()}
+      />
+
+      {/* ✅ Use SettingsComponent instead of old Modal */}
+      <SettingsComponent
+        visible={settingsModalVisible}
+        onClose={() => setSettingsModalVisible(false)}
       />
 
       <View style={{ flex: 1 }}>
         <MapView
           style={styles.map}
-          region={mapRegion} // ✅ Controlled region
+          region={mapRegion}
         >
           {locations.map((loc) => (
             <Marker
@@ -159,7 +163,8 @@ export default function MapScreen() {
               coordinate={{
                 latitude: loc.latitude,
                 longitude: loc.longitude,
-              }}ref={loc.type === "user" ? userMarkerRef : undefined}
+              }}
+              ref={loc.type === "user" ? userMarkerRef : undefined}
             >
               <Image
                 source={markerIcons[loc.type] || markerIcons["clinic"]}
@@ -225,100 +230,6 @@ export default function MapScreen() {
 
         <Footer activeTab={activeTab} onTabPress={handleTabPress} />
       </View>
-
-      {/* Settings Modal */}
-      <Modal visible={settingsModalVisible} transparent animationType="fade">
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.18)",
-            justifyContent: "flex-end",
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: "#fff",
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              padding: 24,
-              paddingBottom: 40,
-            }}
-          >
-            <Text
-              style={{ fontSize: 18, fontWeight: "bold", marginBottom: 18 }}
-            >
-              Settings
-            </Text>
-            <TouchableOpacity
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingVertical: 12,
-              }}
-              onPress={() => {
-                setSettingsModalVisible(false);
-                router.push("/profile");
-              }}
-            >
-              <MaterialIcons
-                name="person"
-                size={22}
-                color="#f97316"
-                style={{ marginRight: 12 }}
-              />
-              <Text style={{ fontSize: 16 }}>Profile</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingVertical: 12,
-              }}
-              onPress={() => {
-                setSettingsModalVisible(false);
-                router.push("/preferences");
-              }}
-            >
-              <MaterialIcons
-                name="tune"
-                size={22}
-                color="#f97316"
-                style={{ marginRight: 12 }}
-              />
-              <Text style={{ fontSize: 16 }}>Preferences</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingVertical: 12,
-              }}
-            >
-              <MaterialIcons
-                name="logout"
-                size={22}
-                color="#f97316"
-                style={{ marginRight: 12 }}
-              />
-              <Text
-                style={{ fontSize: 16, fontWeight: "bold", color: "#f97316" }}
-              >
-                Logout
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setSettingsModalVisible(false)}
-              style={{ alignSelf: "center", marginTop: 18 }}
-            >
-              <Text
-                style={{ fontSize: 16, fontWeight: "bold", color: "#f97316" }}
-              >
-                Close
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
