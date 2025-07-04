@@ -10,7 +10,6 @@ import {
   Image,
   Switch,
   Alert,
-  Modal,
   TextInput,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,6 +17,7 @@ import DashboardHeader from '../components/Header';
 import { Footer, useFooterNavigation } from '@/components/Footer';
 import { updateUserOffline, getUserById } from '@/services/models/UserModel';
 import { useAuth } from '@/context/AuthContext';
+import SettingsComponent from '../components/SettingsComponent'; // ✅ Add this import
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -40,7 +40,6 @@ export default function ProfileScreen() {
   const [userId, setUserId] = useState<string | null>(null);
   const { user } = useAuth();
 
-  // 🔁 DRY utility
   const applyUserDetails = (details: any) => {
     setForm({
       name: details.name || '',
@@ -106,8 +105,6 @@ export default function ProfileScreen() {
     }
   };
 
-
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <DashboardHeader
@@ -115,6 +112,12 @@ export default function ProfileScreen() {
         showSettings
         onSettingsPress={() => setSettingsModalVisible(true)}
         onBackPress={() => router.back()}
+      />
+
+      {/* ✅ Settings Modal replaced with SettingsComponent */}
+      <SettingsComponent
+        visible={settingsModalVisible}
+        onClose={() => setSettingsModalVisible(false)}
       />
 
       <View style={{ flex: 1 }}>
@@ -145,7 +148,6 @@ export default function ProfileScreen() {
             <Text style={{ fontSize: 16, color: '#8a7560' }}>
               {form.role ? form.role.charAt(0).toUpperCase() + form.role.slice(1).toLowerCase() : ''}
             </Text>
-
           </View>
 
           {/* Name */}
@@ -172,7 +174,6 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-
           {/* Email */}
           <View style={{ marginBottom: 16 }}>
             <Text style={{ fontSize: 16, fontWeight: '500', color: '#181411', marginBottom: 4 }}>Email</Text>
@@ -197,7 +198,6 @@ export default function ProfileScreen() {
               />
             </View>
           </View>
-
 
           {/* Phone */}
           <View style={{ marginBottom: 16 }}>
@@ -299,61 +299,6 @@ export default function ProfileScreen() {
 
         <Footer activeTab={activeTab} onTabPress={handleTabPress} />
       </View>
-
-      {/* Settings Modal */}
-      <Modal visible={settingsModalVisible} transparent animationType="fade">
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.18)',
-            justifyContent: 'flex-end',
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: '#fff',
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              padding: 24,
-              paddingBottom: 40,
-            }}
-          >
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 18 }}>Settings</Text>
-            <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }}
-              onPress={() => {
-                setSettingsModalVisible(false);
-                router.push('/profile');
-              }}
-            >
-              <MaterialIcons name="person" size={22} color="#f97316" style={{ marginRight: 12 }} />
-              <Text style={{ fontSize: 16 }}>Profile</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }}
-              onPress={() => {
-                setSettingsModalVisible(false);
-                router.push('/preferences');
-              }}
-            >
-              <MaterialIcons name="tune" size={22} color="#f97316" style={{ marginRight: 12 }} />
-              <Text style={{ fontSize: 16 }}>Preferences</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }}
-            >
-              <MaterialIcons name="logout" size={22} color="#f97316" style={{ marginRight: 12 }} />
-              <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#f97316' }}>Logout</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setSettingsModalVisible(false)}
-              style={{ alignSelf: 'center', marginTop: 18 }}
-            >
-              <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#f97316' }}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
