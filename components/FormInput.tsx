@@ -21,6 +21,9 @@ interface FormInputProps {
   editable?: boolean;
   fontSize?: number;
   height?: number;
+  multiline?: boolean;
+  numberOfLines?: number;
+  style?: any;
 }
 
 export const FormInput: React.FC<FormInputProps> = ({
@@ -36,6 +39,9 @@ export const FormInput: React.FC<FormInputProps> = ({
   editable = true,
   fontSize,
   height,
+  multiline = false,
+  numberOfLines,
+  style,
 }) => {
   const isLight = theme === 'light';
 
@@ -48,7 +54,8 @@ export const FormInput: React.FC<FormInputProps> = ({
             ? 'bg-white text-black border-gray-300'
             : 'bg-[#111827] text-white border-orange-500',
           fontSize ? { fontSize } : {},
-          height ? { height, paddingVertical: 0 } : { paddingVertical: 14 }
+          height ? { height, paddingVertical: 0 } : { paddingVertical: 14 },
+          style
         )}
         placeholder={placeholder}
         placeholderTextColor={isLight ? '#555' : '#aaa'}
@@ -57,6 +64,8 @@ export const FormInput: React.FC<FormInputProps> = ({
         onChangeText={onChangeText}
         keyboardType={keyboardType}
         editable={editable}
+        multiline={multiline}
+        numberOfLines={numberOfLines}
       />
 
       {showToggle && setShowPassword && (
