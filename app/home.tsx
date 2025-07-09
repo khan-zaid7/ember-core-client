@@ -1,9 +1,9 @@
+import { Footer, useFooterNavigation } from '@/components/Footer';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Footer, useFooterNavigation } from '@/components/Footer';
 import DashboardHeader from '../components/Header';
 import SettingsComponent from '../components/SettingsComponent';
 
@@ -88,7 +88,7 @@ export default function HomeDashboard() {
                 <Text style={{ color: '#161412', fontSize: 16, fontWeight: 'bold' }}>Medical Supply Management</Text>
                 <Text style={{ color: '#81736a', fontSize: 14, marginTop: 2 }}>Manage medical supplies offline</Text>
               </View>
-              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: navigate to medical supply */ }}>
+              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => router.push('/medical-supplies' as any)}>
                 <MaterialIcons name="arrow-forward" size={14} color="#161412" />
                 <Text style={{ color: '#161412', fontSize: 12, fontWeight: '500', marginRight: 4, paddingVertical: 0 }}>Go</Text>
               </TouchableOpacity>
