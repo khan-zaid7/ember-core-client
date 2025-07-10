@@ -136,6 +136,7 @@ export const updateUserOffline = async (user: {
   role: string;
   phone_number: string;
   image_uri?: string;
+  location?: string;
 }) => {
   const { user_id } = user;
 
@@ -144,6 +145,7 @@ export const updateUserOffline = async (user: {
   const phone_number = user.phone_number?.trim() || null;
   const role = user.role?.toLowerCase();
   let image_url: string | null = null;
+  const location = user.location;
 
   if (!user_id || !name || !email || !role) {
     throw new Error('All required fields must be filled');
@@ -175,12 +177,22 @@ export const updateUserOffline = async (user: {
 
   const updated_at = new Date().toISOString();
 
-  db.runSync(
-    `UPDATE users
-     SET name = ?, email = ?, phone_number = ?, role = ?, image_url = ?, updated_at = ?, synced = 0
-     WHERE user_id = ?`,
-    [name, email, phone_number, role, image_url, updated_at, user_id]
-  );
+  // Update with location if provided
+  if (location !== undefined) {
+    db.runSync(
+      `UPDATE users
+       SET name = ?, email = ?, phone_number = ?, role = ?, image_url = ?, updated_at = ?, synced = 0, location = ?
+       WHERE user_id = ?`,
+      [name, email, phone_number, role, image_url, updated_at, location, user_id]
+    );
+  } else {
+    db.runSync(
+      `UPDATE users
+       SET name = ?, email = ?, phone_number = ?, role = ?, image_url = ?, updated_at = ?, synced = 0
+       WHERE user_id = ?`,
+      [name, email, phone_number, role, image_url, updated_at, user_id]
+    );
+  }
 
   db.runSync(
     `UPDATE sessions
