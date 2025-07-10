@@ -2,7 +2,7 @@
 import AuthGuard from '@/components/AuthGuard';
 import { AuthProvider } from '@/context/AuthContext';
 import { useSyncTrigger } from '@/hooks/useSyncTrigger';
-import { initDatabase, verifyTables } from '@/services/db';
+import { initDatabase, verifyTables, resetDatabase } from '@/services/db';
 import { Stack } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Platform } from 'react-native';

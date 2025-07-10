@@ -6,60 +6,27 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-// Static test data
-type RecordItem = {
-  id: string;
-  entityType: string;
-  lastAttempt: string;
-  createdBy: string;
-  retryCount: number;
-  entityId: string;
-  syncStatus: string;
-  name: string;
-  syncId: string;
-};
-
-const staticRecords: RecordItem[] = [
-  {
-    id: 'a1b2c3d4',
-    entityType: 'User',
-    lastAttempt: '2 hours ago',
-    createdBy: 'Dr. Sarah Wilson',
-    retryCount: 2,
-    entityId: 'a1b2c3d4',
-    syncStatus: 'Synced',
-    name: 'John Smith',
-    syncId: '9876...cba',
-  },
-  {
-    id: 'e5f6g7h8',
-    entityType: 'Patient',
-    lastAttempt: '1 day ago',
-    createdBy: 'Dr. Michael Chen',
-    retryCount: 0,
-    entityId: 'e5f6g7h8',
-    syncStatus: 'Unsynced',
-    name: 'Sarah Johnson',
-    syncId: '5432...def',
-  },
-];
-
-// Add static patient details for the modal
-const staticPatientDetails = {
-  name: 'Sophia Carter',
-  age: 35,
-  gender: 'Female',
-  locationId: 'LOC-1234',
-};
+import { useAuth } from '@/context/AuthContext';
+import { getAllSyncItems, SyncQueueItem, getEntityDetails } from '@/services/models/SyncQueueModel'; // adjust path as needed
+import dayjs from 'dayjs';
+import { entityFieldMap } from '@/utils/displayFields';
+import { getUserById } from '@/services/models/UserModel';
 
 export default function SyncQueueRecords() {
   const router = useRouter();
   const [search, setSearch] = useState('');
-  const [entityTypeFilter, setEntityTypeFilter] = useState('');
-  const [syncStatusFilter, setSyncStatusFilter] = useState('');
+  // Entity type options (adjust as per your data)
+  const entityTypeOptions = ['', 'user', 'patient', 'supply', 'task', 'location'];
+  const syncStatusOptions = ['', 'success', 'pending', 'failed'];
+
+  const [entityTypeIndex, setEntityTypeIndex] = useState(0);
+  const [syncStatusIndex, setSyncStatusIndex] = useState(0);
+
+  const entityTypeFilter = entityTypeOptions[entityTypeIndex];
+  const syncStatusFilter = syncStatusOptions[syncStatusIndex];
+
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<RecordItem | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<SyncQueueItem | null>(null);
   const [showEntityDetails, setShowEntityDetails] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const [pendingScroll, setPendingScroll] = useState(false);
@@ -75,25 +42,53 @@ export default function SyncQueueRecords() {
   const rotationAnims = useRef<{ [id: string]: Animated.Value }>({});
 
   const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
+  const { user } = useAuth();
+  const [records, setRecords] = useState<SyncQueueItem[]>([]);
+  const [entityDetails, setEntityDetails] = useState<any>(null);
+
 
 
   // Filter logic
-  const filteredRecords = staticRecords.filter(r =>
-    (r.name.toLowerCase().includes(search.toLowerCase()) ||
-     r.createdBy.toLowerCase().includes(search.toLowerCase()) ||
-     r.entityId.toLowerCase().includes(search.toLowerCase()) ||
-     r.syncId.toLowerCase().includes(search.toLowerCase()) ||
-     r.id.toLowerCase().includes(search.toLowerCase())) &&
-    (!entityTypeFilter || r.entityType === entityTypeFilter) &&
-    (!syncStatusFilter || r.syncStatus === syncStatusFilter)
+  const filteredRecords = records.filter(r =>
+    (r.entity_id.toLowerCase().includes(search.toLowerCase()) ||
+      r.created_by.toLowerCase().includes(search.toLowerCase()) ||
+      r.sync_id.toLowerCase().includes(search.toLowerCase())) &&
+    (!entityTypeFilter || r.entity_type.toLowerCase() === entityTypeFilter) &&
+    (!syncStatusFilter || r.status === syncStatusFilter)
   );
 
+  const formatLabel = (key: string) =>
+    key
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, l => l.toUpperCase());
+
+  // useEffect(() => {
+  //   const loadUserDetails = async () => {
+  //     if (user?.user_id) {
+
+  //     }
+  //   };
+  //   loadUserDetails();
+  // }, [user?.user_id]);
+
+  useEffect(() => {
+    const loadRecords = () => {
+      const data = getAllSyncItems();
+      setRecords(data);
+    };
+    loadRecords();
+  }, []);
+
+
   // Optimized openModal function
-  const openModal = useCallback((record: RecordItem) => {
+  const openModal = useCallback((record: SyncQueueItem) => {
     setSelectedRecord(record);
     setModalVisible(true);
     setIsEntityDetailsExpanded(false);
     setPendingScroll(true);
+    // Fetch dynamic entity data
+    const details = getEntityDetails(record.entity_type, record.entity_id);
+    setEntityDetails(details);
   }, []);
 
   const closeModal = useCallback(() => {
@@ -220,17 +215,10 @@ export default function SyncQueueRecords() {
         <TouchableOpacity
           style={styles.filterButton}
           activeOpacity={0.7}
-          onPress={() => {
-            setEntityTypeFilter(prev =>
-              prev === '' ? 'User'
-                : prev === 'User' ? 'Patient'
-                  : prev === 'Patient' ? 'Supply'
-                    : ''
-            );
-          }}
+          onPress={() => setEntityTypeIndex((prev) => (prev + 1) % entityTypeOptions.length)}
         >
           <Text style={styles.filterButtonText}>
-            Entity Type: {entityTypeFilter || 'All'}
+            Entity Type: {entityTypeFilter ? entityTypeFilter.charAt(0).toUpperCase() + entityTypeFilter.slice(1) : 'All'}
           </Text>
           <MaterialIcons name="arrow-drop-down" size={20} color="#1c130d" />
         </TouchableOpacity>
@@ -238,16 +226,16 @@ export default function SyncQueueRecords() {
         <TouchableOpacity
           style={styles.filterButton}
           activeOpacity={0.7}
-          onPress={() => {
-            setSyncStatusFilter(prev =>
-              prev === '' ? 'Synced'
-                : prev === 'Synced' ? 'Unsynced'
-                  : ''
-            );
-          }}
+          onPress={() => setSyncStatusIndex((prev) => (prev + 1) % syncStatusOptions.length)}
         >
           <Text style={styles.filterButtonText}>
-            Sync Status: {syncStatusFilter || 'All'}
+            Sync Status: {
+              syncStatusFilter === ''
+                ? 'All'
+                : syncStatusFilter === 'success'
+                  ? 'Synced'
+                  : syncStatusFilter.charAt(0).toUpperCase() + syncStatusFilter.slice(1)
+            }
           </Text>
           <MaterialIcons name="arrow-drop-down" size={20} color="#1c130d" />
         </TouchableOpacity>
@@ -255,18 +243,23 @@ export default function SyncQueueRecords() {
       {/* Records List */}
       <FlatList
         data={filteredRecords}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.sync_id}
         contentContainerStyle={{ paddingBottom: 32 }}
         renderItem={({ item }) => {
-          const isSynced = item.syncStatus === 'Synced';
-          const isSyncing = syncing[item.id];
-          if (!rotationAnims.current[item.id]) {
-            rotationAnims.current[item.id] = new Animated.Value(0);
+          console.log(item.status)
+          const isSynced = item.status === 'success';
+          const isSyncing = syncing[item.sync_id];
+
+          // Initialize rotation animation if it doesn't exist yet
+          if (!rotationAnims.current[item.sync_id]) {
+            rotationAnims.current[item.sync_id] = new Animated.Value(0);
           }
-          const spin = rotationAnims.current[item.id].interpolate({
+
+          const spin = rotationAnims.current[item.sync_id].interpolate({
             inputRange: [0, 1],
             outputRange: ['0deg', '360deg'],
           });
+
           return (
             <View style={styles.recordRow}>
               <TouchableOpacity
@@ -274,22 +267,31 @@ export default function SyncQueueRecords() {
                 onPress={() => openModal(item)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.entityType}>{item.name}</Text>
-                <Text style={styles.recordDetails} numberOfLines={1} ellipsizeMode="tail">
-                  Last Attempt: {item.lastAttempt} · Created by: {item.createdBy} · Retry Count: {item.retryCount}
+                {/* Display entity type and short sync_id */}
+                <Text style={styles.entityType}>
+                  {item.entity_type} ({item.sync_id.slice(0, 6)})
                 </Text>
+
+                {/* Additional details */}
+                <Text style={styles.recordDetails} numberOfLines={1} ellipsizeMode="tail">
+                  Last Attempt: {item.last_attempt_at ? dayjs(item.last_attempt_at).fromNow() : 'N/A'} ·
+                  Created by: {item.created_by || 'N/A'} · Retry Count: {item.retry_count}
+                </Text>
+
+                {/* Truncated Entity ID */}
                 <Text style={styles.entityId} numberOfLines={1} ellipsizeMode="middle">
-                  Entity ID: …{item.entityId.slice(-8)}
+                  Entity ID: …{item.entity_id.slice(-8)}
                 </Text>
               </TouchableOpacity>
-              {/* Sync icon or green dot */}
+
+              {/* Sync Icon or Green Dot */}
               {isSynced ? (
                 <View style={styles.greenDot} />
               ) : (
                 <TouchableOpacity
-                  onPress={e => {
+                  onPress={(e) => {
                     e.stopPropagation();
-                    if (!isSyncing) startSyncAnimation(item.id);
+                    if (!isSyncing) startSyncAnimation(item.sync_id);
                   }}
                   activeOpacity={isSyncing ? 1 : 0.7}
                   disabled={isSyncing}
@@ -316,6 +318,7 @@ export default function SyncQueueRecords() {
           </Text>
         }
       />
+
       {/* Sync Record Details Modal */}
       <Modal
         visible={modalVisible}
@@ -372,39 +375,66 @@ export default function SyncQueueRecords() {
                 <View style={{ flexDirection: 'row', marginBottom: 12 }}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.infoLabel}>Entity Type</Text>
-                    <Text style={styles.infoValue}>{selectedRecord.entityType}</Text>
+                    <Text style={styles.infoValue}>{selectedRecord.entity_type}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.infoLabel}>Sync Status</Text>
-                    <Text style={styles.infoValue}>Pending</Text>
+                    <Text style={styles.infoValue}>
+                      {selectedRecord.status === 'success'
+                        ? 'Synced'
+                        : selectedRecord.status === 'pending'
+                        ? 'Pending'
+                        : selectedRecord.status === 'failed'
+                        ? 'Failed'
+                        : selectedRecord.status || 'Unknown'}
+                    </Text>
                   </View>
                 </View>
                 <View style={styles.divider} />
                 <View style={{ flexDirection: 'row', marginBottom: 12, marginTop: 8 }}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.infoLabel}>Retry Count</Text>
-                    <Text style={styles.infoValue}>{selectedRecord.retryCount}</Text>
+                    <Text style={styles.infoValue}>{selectedRecord.retry_count}</Text>
                   </View>
-                  <View style={{ flex: 1 }}>
+                    <View style={{ flex: 1 }}>
                     <Text style={styles.infoLabel}>Created By</Text>
-                    <Text style={styles.infoValue}>{selectedRecord.createdBy}</Text>
-                  </View>
+                    <Text style={styles.infoValue}>
+                      {
+                      (() => {
+                        const user = getUserById(selectedRecord.created_by);
+                        return user?.name || selectedRecord.created_by || 'N/A';
+                      })()
+                      }
+                    </Text>
+                    </View>
                 </View>
                 <View style={styles.divider} />
                 <View style={{ flexDirection: 'row', marginBottom: 12, marginTop: 8 }}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.infoLabel}>Last Attempt At</Text>
-                    <Text style={styles.infoValue}>3 hours ago</Text>
+                    <Text style={styles.infoValue}>
+                      {selectedRecord.last_attempt_at
+                        ? dayjs(selectedRecord.last_attempt_at).fromNow()
+                        : 'N/A'}
+                    </Text>
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.infoLabel}>Sync ID</Text>
-                    <Text style={styles.infoValue}>9876...cba</Text>
+                    <Text style={styles.infoValue}>
+                      {selectedRecord.sync_id.length > 10
+                        ? `${selectedRecord.sync_id.slice(0, 4)}...${selectedRecord.sync_id.slice(-3)}`
+                        : selectedRecord.sync_id}
+                    </Text>
                   </View>
                 </View>
                 <View style={styles.divider} />
                 <View style={{ marginTop: 8, marginBottom: 8 }}>
                   <Text style={styles.infoLabel}>Entity ID</Text>
-                  <Text style={styles.infoValue}>x9y8...5m4</Text>
+                  <Text style={styles.infoValue}>
+                    {selectedRecord.entity_id.length > 10
+                      ? `${selectedRecord.entity_id.slice(0, 4)}...${selectedRecord.entity_id.slice(-3)}`
+                      : selectedRecord.entity_id}
+                  </Text>
                 </View>
               </>
             )}
@@ -415,13 +445,13 @@ export default function SyncQueueRecords() {
               activeOpacity={0.7}
             >
               <Text style={styles.entityDetailsBarText}>View Entity Details</Text>
-              <MaterialIcons 
-                name={isEntityDetailsExpanded ? "expand-less" : "expand-more"} 
-                size={24} 
-                color="#161412" 
+              <MaterialIcons
+                name={isEntityDetailsExpanded ? "expand-less" : "expand-more"}
+                size={24}
+                color="#161412"
               />
             </TouchableOpacity>
-            
+
             {/* Entity Details Section */}
             <Animated.View
               style={{
@@ -438,13 +468,56 @@ export default function SyncQueueRecords() {
               }}
             >
               <View>
-                <Text style={{ fontWeight: 'bold', fontSize: 17, color: '#161412', marginTop: 18, marginBottom: 8 }}>Entity Details</Text>
+                <Text style={{ fontWeight: 'bold', fontSize: 17, color: '#161412', marginTop: 18, marginBottom: 8 }}>
+                  Entity Details
+                </Text>
                 <View style={styles.divider} />
-                <Text style={{ fontWeight: '600', fontSize: 16, color: '#161412', marginTop: 8 }}>{staticPatientDetails.name}</Text>
-                <Text style={{ color: '#81736a', fontSize: 15, marginBottom: 8 }}>{staticPatientDetails.age} / {staticPatientDetails.gender}</Text>
-                <Text style={{ color: '#161412', fontSize: 15, marginBottom: 8 }}>Location ID</Text>
-                <Text style={{ color: '#81736a', fontSize: 15 }}>{staticPatientDetails.locationId}</Text>
+
+                {entityDetails ? (
+                  <>
+                    {
+                      // Break fields into row pairs
+                      (entityFieldMap[selectedRecord?.entity_type.toLowerCase() || ''] || [])
+                        .reduce((pairs: [string, string][], key, i, all) => {
+                          if (i % 2 === 0) {
+                            pairs.push([key, all[i + 1] || '']);
+                          }
+                          return pairs;
+                        }, [])
+                        .map(([leftKey, rightKey], idx, allPairs) => (
+                          <React.Fragment key={leftKey}>
+                            <View style={{ flexDirection: 'row', marginBottom: 12, marginTop: 8 }}>
+                              {/* Left column */}
+                              <View style={{ flex: 1 }}>
+                                <Text style={styles.infoLabel}>{formatLabel(leftKey)}</Text>
+                                <Text style={styles.infoValue}>{entityDetails[leftKey] ?? '—'}</Text>
+                              </View>
+                              {/* Right column (if available) */}
+                              {rightKey ? (
+                                <View style={{ flex: 1 }}>
+                                  <Text style={styles.infoLabel}>{formatLabel(rightKey)}</Text>
+                                  <Text style={styles.infoValue}>{entityDetails[rightKey] ?? '—'}</Text>
+                                </View>
+                              ) : (
+                                <View style={{ flex: 1 }} /> // spacer if odd
+                              )}
+                            </View>
+                            <View style={styles.divider} />
+                          </React.Fragment>
+                        ))
+                    }
+                  </>
+                ) : (
+                  <Text style={{ fontSize: 15, color: '#999', marginVertical: 12 }}>
+                    No details available for this entity.
+                  </Text>
+                )}
               </View>
+
+
+
+
+
             </Animated.View>
           </ScrollView>
         </Animated.View>
