@@ -14,6 +14,7 @@ export const initDatabase = () => {
       reset_token TEXT,
       token_expire TEXT,
       created_at TEXT,
+      location TEXT,
       updated_at TEXT,
       image_url TEXT,
       synced INTEGER DEFAULT 0,

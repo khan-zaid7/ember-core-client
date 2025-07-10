@@ -18,6 +18,7 @@ import { Footer, useFooterNavigation } from '@/components/Footer';
 import { updateUserOffline, getUserById } from '@/services/models/UserModel';
 import { useAuth } from '@/context/AuthContext';
 import SettingsComponent from '../components/SettingsComponent'; // ✅ Add this import
+import { useLocalSearchParams } from 'expo-router';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -104,6 +105,13 @@ export default function ProfileScreen() {
       Alert.alert('Error', err.message || 'Something went wrong while saving.');
     }
   };
+
+  const params = useLocalSearchParams();
+  useEffect(() => {
+    if (params.latitude && params.longitude) {
+      setLocation(`${params.latitude},${params.longitude}`);
+    }
+  }, [params.latitude, params.longitude]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -234,14 +242,25 @@ export default function ProfileScreen() {
                 borderRadius: 8,
                 backgroundColor: '#fff',
                 height: 48,
-                justifyContent: 'center',
                 paddingHorizontal: 12,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
               }}
-              onPress={() => Alert.prompt('Enter Location', '', setLocation)}
+              onPress={() => {
+                router.push({
+                  pathname: '/map',
+                  params: {
+                    picker: 'true',
+                    returnTo: '/profile',
+                  },
+                });
+              }}
             >
               <Text style={{ color: location ? '#181411' : '#64748b' }}>
-                {location || 'Enter location'}
+                {location ? location : 'Get My Location'}
               </Text>
+              <Ionicons name="location-outline" size={22} color="#f97316" />
             </TouchableOpacity>
           </View>
 
