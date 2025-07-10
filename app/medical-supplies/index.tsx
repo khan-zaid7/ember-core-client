@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, FlatList, StyleSheet } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, TextInput, FlatList, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native'; // ✅ added
 import DashboardHeader from '@/components/Header';
 import { Footer, useFooterNavigation } from '@/components/Footer';
 import { getAllSupplies } from '@/services/models/SuppliesModel';
@@ -26,8 +27,9 @@ export default function MedicalSuppliesList() {
   const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
   const [supplies, setSupplies] = useState<SupplyItem[]>([]);
 
-  useEffect(() => {
-    const loadSupplies = () => {
+  // ✅ Load data on screen focus
+  useFocusEffect(
+    useCallback(() => {
       try {
         const data = getAllSupplies().map((item) => ({
           id: item.supply_id,
@@ -43,9 +45,8 @@ export default function MedicalSuppliesList() {
       } catch (err) {
         console.error('Failed to load supplies:', err);
       }
-    };
-    loadSupplies();
-  }, []);
+    }, [])
+  );
 
   const filteredSupplies = supplies.filter(supply =>
     supply.itemName.toLowerCase().includes(search.toLowerCase()) ||
@@ -112,25 +113,17 @@ export default function MedicalSuppliesList() {
           </Text>
         }
       />
+      {/* Floating Plus Button */}
       <View style={{ position: 'absolute', right: 24, bottom: 110 }}>
         <TouchableOpacity
           style={{
-            backgroundColor: '#f97316',
-            borderRadius: 999,
-            width: 56,
-            height: 56,
-            alignItems: 'center',
-            justifyContent: 'center',
-            shadowColor: '#f97316',
-            shadowOpacity: 0.18,
-            shadowRadius: 8,
-            shadowOffset: { width: 0, height: 2 },
-            elevation: 6,
+            flexDirection: 'row', alignItems: 'center', backgroundColor: '#f97316', borderRadius: 999, height: 56, paddingHorizontal: 20, shadowColor: '#f97316', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
           }}
           activeOpacity={0.8}
           onPress={() => router.push('/medical-supplies/create' as any)}
         >
-          <MaterialIcons name="add" size={32} color="#ffffff" />
+          <MaterialIcons name="add" size={28} color="#ffffff" />
+          <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 16, marginLeft: 8 }}>Add</Text>
         </TouchableOpacity>
       </View>
       <Footer activeTab={activeTab} onTabPress={handleTabPress} />
@@ -166,4 +159,4 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
   },
-}); 
+});

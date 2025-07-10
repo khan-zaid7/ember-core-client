@@ -17,7 +17,7 @@ import DashboardHeader from '../components/Header';
 import { Footer, useFooterNavigation } from '@/components/Footer';
 import { updateUserOffline, getUserById } from '@/services/models/UserModel';
 import { useAuth } from '@/context/AuthContext';
-import SettingsComponent from '../components/SettingsComponent'; // ✅ Add this import
+import SettingsComponent from '../components/SettingsComponent';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -105,6 +105,12 @@ export default function ProfileScreen() {
     }
   };
 
+  const getInitials = (name: string) => {
+    const words = name.trim().split(' ');
+    const initials = words.map(word => word.charAt(0).toUpperCase()).slice(0, 2).join('');
+    return initials || 'U';
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <DashboardHeader
@@ -114,7 +120,6 @@ export default function ProfileScreen() {
         onBackPress={() => router.back()}
       />
 
-      {/* ✅ Settings Modal replaced with SettingsComponent */}
       <SettingsComponent
         visible={settingsModalVisible}
         onClose={() => setSettingsModalVisible(false)}
@@ -124,10 +129,27 @@ export default function ProfileScreen() {
         <ScrollView contentContainerStyle={{ paddingVertical: 24, paddingHorizontal: 24 }}>
           <View style={{ alignItems: 'center', marginBottom: 24 }}>
             <View style={{ position: 'relative' }}>
-              <Image
-                source={{ uri: photo }}
-                style={{ width: 128, height: 128, borderRadius: 64 }}
-              />
+              {photo && photo !== fallbackUrl ? (
+                <Image
+                  source={{ uri: photo }}
+                  style={{ width: 128, height: 128, borderRadius: 64 }}
+                />
+              ) : (
+                <View
+                  style={{
+                    width: 128,
+                    height: 128,
+                    borderRadius: 64,
+                    backgroundColor: '#f97316',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ fontSize: 32, color: '#fff', fontWeight: 'bold' }}>
+                    {getInitials(form.name)}
+                  </Text>
+                </View>
+              )}
               <TouchableOpacity
                 onPress={handleAddPhoto}
                 style={{
