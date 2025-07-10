@@ -112,17 +112,25 @@ export default function MedicalSuppliesList() {
           </Text>
         }
       />
-      {/* Floating Plus Button */}
       <View style={{ position: 'absolute', right: 24, bottom: 110 }}>
         <TouchableOpacity
           style={{
-            flexDirection: 'row', alignItems: 'center', backgroundColor: '#f97316', borderRadius: 999, height: 56, paddingHorizontal: 20, shadowColor: '#f97316', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
+            backgroundColor: '#f97316',
+            borderRadius: 999,
+            width: 56,
+            height: 56,
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: '#f97316',
+            shadowOpacity: 0.18,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 2 },
+            elevation: 6,
           }}
           activeOpacity={0.8}
           onPress={() => router.push('/medical-supplies/create' as any)}
         >
-          <MaterialIcons name="add" size={28} color="#ffffff" />
-          <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 16, marginLeft: 8 }}>Add</Text>
+          <MaterialIcons name="add" size={32} color="#ffffff" />
         </TouchableOpacity>
       </View>
       <Footer activeTab={activeTab} onTabPress={handleTabPress} />
