@@ -19,6 +19,7 @@ import { updateUserOffline, getUserById } from '@/services/models/UserModel';
 import { useAuth } from '@/context/AuthContext';
 import SettingsComponent from '../components/SettingsComponent';
 import { useLocalSearchParams } from 'expo-router';
+import { insertLocationOffline, getUserLocation } from '@/services/models/LocationsModel';
 
 
 export default function ProfileScreen() {
@@ -41,6 +42,8 @@ export default function ProfileScreen() {
   const [photo, setPhoto] = useState(fallbackUrl);
   const [userId, setUserId] = useState<string | null>(null);
   const { user } = useAuth();
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
 
   const applyUserDetails = (details: any) => {
     setForm({
@@ -61,6 +64,19 @@ export default function ProfileScreen() {
       }
     };
     loadUserDetails();
+  }, [user?.user_id]);
+
+  useEffect(() => {
+    const fetchUserLocation = async () => {
+      if (user?.user_id) {
+        const loc = await getUserLocation(user.user_id);
+        if (loc && loc.latitude && loc.longitude) {
+          setLatitude(loc.latitude);
+          setLongitude(loc.longitude);
+        }
+      }
+    };
+    fetchUserLocation();
   }, [user?.user_id]);
 
   const handleAddPhoto = async () => {
@@ -88,6 +104,7 @@ export default function ProfileScreen() {
     }
 
     try {
+      // Save user profile
       await updateUserOffline({
         user_id: userId,
         name: form.name.trim(),
@@ -96,6 +113,26 @@ export default function ProfileScreen() {
         phone_number: form.phone_number.trim(),
         image_uri: photo,
       });
+
+      // Save location if available
+      if (latitude !== null && longitude !== null) {
+        try {
+          await insertLocationOffline({
+            userId: userId,
+            name: form.name.trim() + "'s Location",
+            type: 'user',
+            latitude,
+            longitude,
+            addedAt: new Date().toISOString(),
+            description: 'Profile location',
+          });
+        } catch (err: any) {
+          // Ignore duplicate error, show others
+          if (!String(err.message).includes('already exists')) {
+            Alert.alert('Location Error', err.message || 'Failed to save location.');
+          }
+        }
+      }
 
       const updated = await getUserById(userId);
       applyUserDetails(updated);
