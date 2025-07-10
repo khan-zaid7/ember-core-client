@@ -1,15 +1,15 @@
-import { Footer, useFooterNavigation } from '@/components/Footer';
-import DashboardHeader from '@/components/Header';
-import SettingsComponent from '@/components/SettingsComponent';
-import { getAllRegistrations } from '@/services/models/RegistrationModel';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, FlatList, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import DashboardHeader from '@/components/Header';
+import { Footer, useFooterNavigation } from '@/components/Footer';
+import { getAllRegistrations } from '@/services/models/RegistrationModel';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 dayjs.extend(relativeTime);
+import SettingsComponent from '@/components/SettingsComponent';
 
 type RegistrationItem = {
   id: string;
@@ -200,22 +200,13 @@ export default function UsersList() {
       <View style={{ position: 'absolute', right: 24, bottom: 110 }}>
         <TouchableOpacity
           style={{
-            backgroundColor: '#f97316',
-            borderRadius: 999,
-            width: 56,
-            height: 56,
-            alignItems: 'center',
-            justifyContent: 'center',
-            shadowColor: '#f97316',
-            shadowOpacity: 0.18,
-            shadowRadius: 8,
-            shadowOffset: { width: 0, height: 2 },
-            elevation: 6,
+            flexDirection: 'row', alignItems: 'center', backgroundColor: '#f97316', borderRadius: 999, height: 56, paddingHorizontal: 20, shadowColor: '#f97316', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
           }}
           activeOpacity={0.8}
           onPress={() => router.push('/register-patients/create' as any)}
         >
-          <MaterialIcons name="add" size={32} color="#ffffff" />
+          <MaterialIcons name="add" size={28} color="#ffffff" />
+          <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 16, marginLeft: 8 }}>Add</Text>
         </TouchableOpacity>
       </View>
       <Footer activeTab={activeTab} onTabPress={handleTabPress} />

@@ -104,13 +104,29 @@ export default function HomeDashboard() {
                 <Text style={{ color: '#161412', fontSize: 16, fontWeight: 'bold' }}>View Unsynced Records</Text>
                 <Text style={{ color: '#81736a', fontSize: 14, marginTop: 2 }}>View records not yet synced</Text>
               </View>
-              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => router.push('/records' as any)}>
+              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: navigate to unsynced records */ }}>
                 <MaterialIcons name="arrow-forward" size={14} color="#161412" />
                 <Text style={{ color: '#161412', fontSize: 12, fontWeight: '500', marginRight: 4, paddingVertical: 0 }}>Go</Text>
               </TouchableOpacity>
             </View>
             <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16 / 9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
               <MaterialIcons name="sync-problem" size={48} color="#f97316" />
+            </View>
+          </View>
+          {/* Card 4: Sync Data */}
+          <View style={{ flexDirection: 'row', alignItems: 'stretch', gap: 16, backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}>
+            <View style={{ flex: 2, justifyContent: 'space-between' }}>
+              <View>
+                <Text style={{ color: '#161412', fontSize: 16, fontWeight: 'bold' }}>Sync Data</Text>
+                <Text style={{ color: '#81736a', fontSize: 14, marginTop: 2 }}>Synchronize data with the server</Text>
+              </View>
+              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: sync data */ }}>
+                <MaterialIcons name="arrow-forward" size={14} color="#161412" />
+                <Text style={{ color: '#161412', fontSize: 12, fontWeight: '500', marginRight: 4, paddingVertical: 0 }}>Go</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#fff', aspectRatio: 16 / 9, marginLeft: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+              <MaterialIcons name="sync" size={48} color="#f97316" />
             </View>
           </View>
         </View>
@@ -124,7 +140,7 @@ export default function HomeDashboard() {
                 <Text style={{ color: '#161412', fontSize: 16, fontWeight: 'bold' }}>Volunteer Actions</Text>
                 <Text style={{ color: '#81736a', fontSize: 14, marginTop: 2 }}>Actions available for volunteers</Text>
               </View>
-              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => router.push('/tasks/assignedTasks' as any)}>
+              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: volunteer actions */ }}>
                 <MaterialIcons name="arrow-forward" size={14} color="#161412" />
                 <Text style={{ color: '#161412', fontSize: 12, fontWeight: '500', marginRight: 4, paddingVertical: 0 }}>Go</Text>
               </TouchableOpacity>
@@ -140,7 +156,7 @@ export default function HomeDashboard() {
                 <Text style={{ color: '#161412', fontSize: 16, fontWeight: 'bold' }}>Admin Actions</Text>
                 <Text style={{ color: '#81736a', fontSize: 14, marginTop: 2 }}>Actions available for administrators</Text>
               </View>
-              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => router.push('/tasks' as any)}>
+              <TouchableOpacity style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#f4f2f1', borderRadius: 999, height: 24, paddingHorizontal: 10, marginTop: 7, alignSelf: 'flex-start', minWidth: 0 }} onPress={() => {/* TODO: admin actions */ }}>
                 <MaterialIcons name="arrow-forward" size={14} color="#161412" />
                 <Text style={{ color: '#161412', fontSize: 12, fontWeight: '500', marginRight: 4, paddingVertical: 0 }}>Go</Text>
               </TouchableOpacity>
