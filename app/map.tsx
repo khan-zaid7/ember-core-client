@@ -15,9 +15,12 @@ import DashboardHeader from "../components/Header";
 import { Footer, useFooterNavigation } from "@/components/Footer";
 import { MaterialIcons } from "@expo/vector-icons";
 import SettingsComponent from "../components/SettingsComponent"; // ✅ Import the same SettingsComponent
+import { useLocalSearchParams } from "expo-router";
 
 export default function MapScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const pickerMode = params.picker === "true";
   const { activeTab, handleTabPress } = useFooterNavigation("map", () =>
     setSettingsModalVisible(true)
   );
@@ -27,6 +30,10 @@ export default function MapScreen() {
   const [gettingLocation, setGettingLocation] = useState(false);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const userMarkerRef = useRef<any>(null);
+  const [selectedLocation, setSelectedLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
   const [mapRegion, setMapRegion] = useState({
     latitude: 37.78825,
@@ -91,8 +98,6 @@ export default function MapScreen() {
 
       const pos = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
-        maximumAge: 5000,
-        timeout: 5000,
       });
 
       const { latitude, longitude } = pos.coords;
@@ -142,8 +147,9 @@ export default function MapScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <DashboardHeader
         title="Map"
-        showSettings
+        showSettings={!pickerMode}
         onSettingsPress={() => setSettingsModalVisible(true)}
+        onBackPress={pickerMode ? () => router.back() : () => router.push('/')}
       />
 
       {/* ✅ Use SettingsComponent instead of old Modal */}
@@ -156,6 +162,14 @@ export default function MapScreen() {
         <MapView
           style={styles.map}
           region={mapRegion}
+          onPress={pickerMode ? (e) => {
+            setSelectedLocation(e.nativeEvent.coordinate);
+            setMapRegion({
+              ...mapRegion,
+              latitude: e.nativeEvent.coordinate.latitude,
+              longitude: e.nativeEvent.coordinate.longitude,
+            });
+          } : undefined}
         >
           {locations.map((loc) => (
             <Marker
@@ -209,26 +223,107 @@ export default function MapScreen() {
               </Callout>
             </Marker>
           ))}
+          {pickerMode && selectedLocation && (
+            <Marker
+              coordinate={selectedLocation}
+              pinColor="#f97316"
+            />
+          )}
         </MapView>
 
         <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            onPress={handleGetMyLocation}
-            style={[
-              styles.getLocationButton,
-              gettingLocation && { opacity: 0.7 },
-            ]}
-            disabled={gettingLocation}
-          >
-            {gettingLocation ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.getLocationButtonText}>Get My Location</Text>
-            )}
-          </TouchableOpacity>
+          {pickerMode ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <TouchableOpacity
+                onPress={async () => {
+                  setGettingLocation(true);
+                  try {
+                    const { status } = await Location.requestForegroundPermissionsAsync();
+                    if (status !== "granted") {
+                      alert("Permission denied");
+                      return;
+                    }
+                    const pos = await Location.getCurrentPositionAsync({
+                      accuracy: Location.Accuracy.Balanced,
+                    });
+                    setSelectedLocation({
+                      latitude: pos.coords.latitude,
+                      longitude: pos.coords.longitude,
+                    });
+                    setMapRegion({
+                      ...mapRegion,
+                      latitude: pos.coords.latitude,
+                      longitude: pos.coords.longitude,
+                    });
+                  } catch (error) {
+                    alert("Could not get location.");
+                  } finally {
+                    setGettingLocation(false);
+                  }
+                }}
+                style={{
+                  backgroundColor: '#fff',
+                  borderRadius: 24,
+                  width: 48,
+                  height: 48,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: '#e5e7eb',
+                  shadowColor: '#000',
+                  shadowOpacity: 0.08,
+                  shadowRadius: 4,
+                  elevation: 2,
+                }}
+                disabled={gettingLocation}
+              >
+                <MaterialIcons name="my-location" size={28} color="#f97316" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  if (selectedLocation) {
+                    router.replace({
+                      pathname: params.returnTo as any,
+                      params: {
+                        ...params,
+                        latitude: selectedLocation.latitude.toString(),
+                        longitude: selectedLocation.longitude.toString(),
+                      },
+                    });
+                  }
+                }}
+                style={[
+                  styles.getLocationButton,
+                  { flex: 1, marginHorizontal: 0 },
+                  !selectedLocation && { opacity: 0.7 },
+                ]}
+                disabled={!selectedLocation}
+              >
+                <Text style={styles.getLocationButtonText}>
+                  {selectedLocation ? "Select This Location" : "Tap map or use GPS to select location"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              onPress={handleGetMyLocation}
+              style={[
+                styles.getLocationButton,
+                gettingLocation && { opacity: 0.7 },
+              ]}
+              disabled={gettingLocation}
+            >
+              {gettingLocation ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.getLocationButtonText}>Get My Location</Text>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
-
-        <Footer activeTab={activeTab} onTabPress={handleTabPress} />
+        {!pickerMode && (
+          <Footer activeTab={activeTab} onTabPress={handleTabPress} />
+        )}
       </View>
     </SafeAreaView>
   );

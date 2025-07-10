@@ -1,6 +1,6 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useRouter, useLocalSearchParams } from "expo-router";
+import React, { useState, useEffect } from 'react';
 import { Modal, ScrollView, Text, TouchableOpacity, View, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Footer, useFooterNavigation } from '@/components/Footer';
@@ -57,7 +57,41 @@ export default function RegisterSupply() {
   const [expiryPickerVisible, setExpiryPickerVisible] = useState(false);
   const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { user } = useAuth();
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  // On mount, check for latitude/longitude in params and update state
+  useEffect(() => {
+    if (params.latitude && params.longitude) {
+      setLocation({
+        latitude: parseFloat(params.latitude as string),
+        longitude: parseFloat(params.longitude as string),
+      });
+    }
+  }, [params.latitude, params.longitude]);
+
+  // Restore form fields from params if present
+  useEffect(() => {
+    if (params.itemName || params.quantity || params.expiryDate || params.timestamp) {
+      setForm(prev => ({
+        ...prev,
+        itemName: params.itemName ? String(params.itemName) : prev.itemName,
+        quantity: params.quantity ? String(params.quantity) : prev.quantity,
+        expiryDate: params.expiryDate ? String(params.expiryDate) : prev.expiryDate,
+        timestamp: params.timestamp ? String(params.timestamp) : prev.timestamp,
+      }));
+    }
+  }, [params.itemName, params.quantity, params.expiryDate, params.timestamp]);
+
+  useEffect(() => {
+    if (location) {
+      setForm(prev => ({
+        ...prev,
+        locationId: `${location.latitude},${location.longitude}`,
+      }));
+    }
+  }, [location]);
 
   const handleChange = (key: keyof SupplyForm, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -106,12 +140,13 @@ export default function RegisterSupply() {
         itemName: form.itemName,
         quantity: form.quantity,
         expiryDate: form.expiryDate,
-        locationId: form.locationId,
+        locationId: location ? `${location.latitude},${location.longitude}` : '',
         timestamp: form.timestamp,
       });
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
       setForm(initialForm);
+      setLocation(null);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Something went wrong');
     }
@@ -217,34 +252,37 @@ export default function RegisterSupply() {
               {/* Location */}
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#334155', marginBottom: 16 }}>Location</Text>
               <View style={{ marginBottom: 18, height: 54, justifyContent: 'center' }}>
-                <View style={{
-                  borderWidth: 1,
-                  borderColor: '#e5e7eb',
-                  borderRadius: 8,
-                  backgroundColor: '#fff',
-                  height: 47,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  paddingHorizontal: 12,
-                  justifyContent: 'space-between',
-                }}>
-                  <TouchableOpacity
-                    onPress={() => setLocationModalVisible(true)}
-                    activeOpacity={0.8}
-                    style={{ flex: 1, height: '100%', justifyContent: 'center' }}
-                  >
-                    <Text style={{ color: form.locationId ? '#1e293b' : '#64748b', fontSize: 16 }}>
-                      {form.locationId || 'Select Location'}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setLocationModalVisible(true)}
-                    activeOpacity={0.7}
-                    style={{ paddingLeft: 8, height: '100%', justifyContent: 'center' }}
-                  >
-                    <Ionicons name="chevron-down" size={24} color="#64748b" />
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#e5e7eb',
+                    borderRadius: 8,
+                    backgroundColor: '#fff',
+                    height: 47,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingHorizontal: 12,
+                    justifyContent: 'space-between',
+                  }}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/map',
+                      params: {
+                        picker: 'true',
+                        returnTo: '/medical-supplies/create',
+                        itemName: form.itemName,
+                        quantity: form.quantity,
+                        expiryDate: form.expiryDate,
+                        timestamp: form.timestamp,
+                      },
+                    });
+                  }}
+                >
+                  <Text style={{ color: location ? '#1e293b' : '#64748b', fontSize: 16 }}>
+                    {location ? `Lat: ${location.latitude.toFixed(5)}, Lng: ${location.longitude.toFixed(5)}` : 'Get My Location'}
+                  </Text>
+                  <Ionicons name="location-outline" size={22} color="#f97316" />
+                </TouchableOpacity>
                 <Text style={{ color: '#ef4444', fontSize: 14, marginTop: 2 }}>{errors.locationId || ' '}</Text>
               </View>
 

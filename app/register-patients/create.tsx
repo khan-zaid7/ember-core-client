@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useRouter, useLocalSearchParams } from "expo-router";
+import React, { useState, useEffect } from 'react';
 import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -79,6 +79,40 @@ export default function RegisterOffline() {
   const [locationModalVisible, setLocationModalVisible] = useState(false);
   const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  // On mount, check for latitude/longitude in params and update state
+  useEffect(() => {
+    if (params.latitude && params.longitude) {
+      setLocation({
+        latitude: parseFloat(params.latitude as string),
+        longitude: parseFloat(params.longitude as string),
+      });
+    }
+  }, [params.latitude, params.longitude]);
+
+  useEffect(() => {
+    if (location) {
+      setForm(prev => ({
+        ...prev,
+        locationId: `${location.latitude},${location.longitude}`,
+      }));
+    }
+  }, [location]);
+
+  // Restore form fields from params if present
+  useEffect(() => {
+    if (params.fullName || params.age || params.gender || params.timestamp) {
+      setForm(prev => ({
+        ...prev,
+        fullName: params.fullName ? String(params.fullName) : prev.fullName,
+        age: params.age ? String(params.age) : prev.age,
+        gender: params.gender ? String(params.gender) : prev.gender,
+        timestamp: params.timestamp ? String(params.timestamp) : prev.timestamp,
+      }));
+    }
+  }, [params.fullName, params.age, params.gender, params.timestamp]);
 
   const handleChange = (key: keyof RegisterForm, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -109,7 +143,8 @@ export default function RegisterOffline() {
     setForm(prev => ({ ...prev, timestamp: getCurrentTimestamp() }));
   };
 
-  const handleSave = () => {
+  // On submit, include location in payload
+  const handleSubmit = async () => {
     if (!validateForm()) return;
 
     if (!user || !user.user_id) {
@@ -118,10 +153,12 @@ export default function RegisterOffline() {
     }
 
     try {
-      const registrationId = insertRegistrationOffline({
+      const data = {
         ...form,
+        location, // { latitude, longitude }
         userId: user.user_id, // inject from session
-      });
+      };
+      const registrationId = insertRegistrationOffline(data);
 
       // Fetch inserted instance and log it
       const inserted = db.getFirstSync<any>(
@@ -272,7 +309,7 @@ export default function RegisterOffline() {
               {/* Location Dropdown Section */}
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#334155', marginBottom: 16 }}>Location</Text>
               <View style={{ marginBottom: 18, height: 54, justifyContent: 'center' }}>
-                <View
+                <TouchableOpacity
                   style={{
                     borderWidth: 1,
                     borderColor: '#e5e7eb',
@@ -284,56 +321,25 @@ export default function RegisterOffline() {
                     paddingHorizontal: 12,
                     justifyContent: 'space-between',
                   }}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/map',
+                      params: {
+                        picker: 'true',
+                        returnTo: '/register-patients/create',
+                        fullName: form.fullName,
+                        age: form.age,
+                        gender: form.gender,
+                        timestamp: form.timestamp,
+                      },
+                    });
+                  }}
                 >
-                  <TouchableOpacity
-                    onPress={() => setLocationModalVisible(true)}
-                    activeOpacity={0.8}
-                    style={{ flex: 1, height: '100%', justifyContent: 'center' }}
-                  >
-                    <Text style={{ color: form.locationId ? '#1e293b' : '#64748b', fontSize: 16 }}>
-                      {form.locationId || 'Select Location'}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setLocationModalVisible(true)}
-                    activeOpacity={0.7}
-                    style={{ paddingLeft: 8, height: '100%', justifyContent: 'center' }}
-                  >
-                    <Ionicons name="chevron-down" size={24} color="#64748b" />
-                  </TouchableOpacity>
-                </View>
-                <Modal
-                  visible={locationModalVisible}
-                  transparent
-                  animationType="fade"
-                  onRequestClose={() => setLocationModalVisible(false)}
-                >
-                  <TouchableOpacity
-                    style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.2)', justifyContent: 'center', alignItems: 'center' }}
-                    activeOpacity={1}
-                    onPressOut={() => setLocationModalVisible(false)}
-                  >
-                    <View style={{ backgroundColor: '#fff', borderRadius: 12, paddingVertical: 12, width: 260, elevation: 8 }}>
-                      {mockLocations.map(option => (
-                        <TouchableOpacity
-                          key={option}
-                          onPress={() => {
-                            handleChange('locationId', option);
-                            setLocationModalVisible(false);
-                          }}
-                          style={{ paddingVertical: 16, paddingHorizontal: 18, alignItems: 'flex-start' }}
-                        >
-                          <Text style={{ fontSize: 16, color: '#1e293b' }}>{option}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </TouchableOpacity>
-                </Modal>
-                <View style={{ minHeight: 18, marginTop: 2 }}>
-                  <Text style={{ color: '#ef4444', fontSize: 14 }}>
-                    {errors.locationId || ' '}
+                  <Text style={{ color: location ? '#1e293b' : '#64748b', fontSize: 16 }}>
+                    {location ? `Lat: ${location.latitude.toFixed(5)}, Lng: ${location.longitude.toFixed(5)}` : 'Get My Location'}
                   </Text>
-                </View>
+                  <Ionicons name="location-outline" size={22} color="#f97316" />
+                </TouchableOpacity>
               </View>
               {/* Divider */}
               <View style={{ height: 1, backgroundColor: '#f1f5f9', marginBottom: 18 }} />
@@ -365,7 +371,7 @@ export default function RegisterOffline() {
                 </TouchableOpacity>
               </View>
               <TouchableOpacity
-                onPress={handleSave}
+                onPress={handleSubmit}
                 style={{
                   backgroundColor: isFormValid ? '#f97316' : '#fbbf24',
                   height: 54,
