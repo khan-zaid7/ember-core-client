@@ -49,13 +49,35 @@ export default function SyncQueueRecords() {
 
 
   // Filter logic
-  const filteredRecords = records.filter(r =>
-    (r.entity_id.toLowerCase().includes(search.toLowerCase()) ||
-      r.created_by.toLowerCase().includes(search.toLowerCase()) ||
-      r.sync_id.toLowerCase().includes(search.toLowerCase())) &&
-    (!entityTypeFilter || r.entity_type.toLowerCase() === entityTypeFilter) &&
-    (!syncStatusFilter || r.status === syncStatusFilter)
-  );
+  const filteredRecords = records.filter(r => {
+    // Normalize fields for search
+    const entityId = r.entity_id?.toLowerCase() ?? '';
+    const createdBy = r.created_by?.toLowerCase() ?? '';
+    const syncId = r.sync_id?.toLowerCase() ?? '';
+    const entityType = r.entity_type?.toLowerCase() ?? '';
+    const status = r.status?.toLowerCase() ?? '';
+
+    const searchTerm = search.trim().toLowerCase();
+
+    // Search logic: match any field
+    const matchesSearch =
+      !searchTerm ||
+      entityId.includes(searchTerm) ||
+      createdBy.includes(searchTerm) ||
+      syncId.includes(searchTerm) ||
+      entityType.includes(searchTerm) ||
+      status.includes(searchTerm);
+
+    // Entity type filter (case-insensitive)
+    const matchesEntityType =
+      !entityTypeFilter || r.entity_type?.toLowerCase() === entityTypeFilter.toLowerCase();
+
+    // Sync status filter (case-insensitive)
+    const matchesSyncStatus =
+      !syncStatusFilter || r.status?.toLowerCase() === syncStatusFilter.toLowerCase();
+
+    return matchesSearch && matchesEntityType && matchesSyncStatus;
+  });
 
   const formatLabel = (key: string) =>
     key
