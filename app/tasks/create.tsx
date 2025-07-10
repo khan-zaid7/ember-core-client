@@ -16,6 +16,7 @@ interface TaskForm {
   description: string;
   status: string;
   priority: string;
+  assignTo: string;
   createdBy: string;
   dueDate: string;
 }
@@ -25,6 +26,7 @@ interface FormErrors {
   description?: string;
   status?: string;
   priority?: string;
+  assignTo?: string;
   createdBy?: string;
   dueDate?: string;
 }
@@ -34,12 +36,14 @@ const initialForm: TaskForm = {
   description: '',
   status: '',
   priority: '',
+  assignTo: '',
   createdBy: '',
   dueDate: '',
 };
 
 const statusOptions = ['Pending', 'In Progress', 'Completed'];
 const priorityOptions = ['Low', 'Medium', 'High'];
+const assignToOptions = ['Field Worker', 'Volunteer'];
 
 // Helper to get formatted current date
 function getCurrentDate() {
@@ -54,6 +58,7 @@ export default function CreateTask() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [priorityModalVisible, setPriorityModalVisible] = useState(false);
+  const [assignToModalVisible, setAssignToModalVisible] = useState(false);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
   const router = useRouter();
@@ -67,6 +72,7 @@ export default function CreateTask() {
     form.description.trim() &&
     form.status.trim() &&
     form.priority.trim() &&
+    form.assignTo.trim() &&
     form.createdBy.trim() &&
     form.dueDate.trim();
 
@@ -76,6 +82,7 @@ export default function CreateTask() {
     if (!form.description.trim()) tempErrors.description = 'Required';
     if (!form.status.trim()) tempErrors.status = 'Required';
     if (!form.priority.trim()) tempErrors.priority = 'Required';
+    if (!form.assignTo.trim()) tempErrors.assignTo = 'Required';
     if (!form.createdBy.trim()) tempErrors.createdBy = 'Required';
     if (!form.dueDate.trim()) tempErrors.dueDate = 'Required';
     setErrors(tempErrors);
@@ -265,6 +272,61 @@ export default function CreateTask() {
                 <View style={{ minHeight: 18, marginTop: 2 }}>
                   <Text style={{ color: '#ef4444', fontSize: 18 }}>
                     {errors.priority || ' '}
+                  </Text>
+                </View>
+              </View>
+              {/* Assign To Dropdown */}
+              <View style={{ marginBottom: 18, height: 54, justifyContent: 'center' }}>
+                <TouchableOpacity
+                  onPress={() => setAssignToModalVisible(true)}
+                  activeOpacity={0.8}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#e5e7eb',
+                    borderRadius: 8,
+                    backgroundColor: '#fff',
+                    height: 47,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingHorizontal: 12,
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Text style={{ color: form.assignTo ? '#1e293b' : '#64748b', fontSize: 16 }}>
+                    {form.assignTo || 'Assign to'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={24} color="#64748b" />
+                </TouchableOpacity>
+                <Modal
+                  visible={assignToModalVisible}
+                  transparent
+                  animationType="fade"
+                  onRequestClose={() => setAssignToModalVisible(false)}
+                >
+                  <TouchableOpacity
+                    style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.2)', justifyContent: 'center', alignItems: 'center' }}
+                    activeOpacity={1}
+                    onPressOut={() => setAssignToModalVisible(false)}
+                  >
+                    <View style={{ backgroundColor: '#fff', borderRadius: 12, paddingVertical: 12, width: 260, elevation: 8 }}>
+                      {assignToOptions.map(option => (
+                        <TouchableOpacity
+                          key={option}
+                          onPress={() => {
+                            handleChange('assignTo', option);
+                            setAssignToModalVisible(false);
+                          }}
+                          style={{ paddingVertical: 16, paddingHorizontal: 18, alignItems: 'flex-start' }}
+                        >
+                          <Text style={{ fontSize: 16, color: '#1e293b' }}>{option}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </TouchableOpacity>
+                </Modal>
+                <View style={{ minHeight: 18, marginTop: 2 }}>
+                  <Text style={{ color: '#ef4444', fontSize: 18 }}>
+                    {errors.assignTo || ' '}
                   </Text>
                 </View>
               </View>
