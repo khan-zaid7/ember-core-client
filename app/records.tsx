@@ -16,7 +16,7 @@ export default function SyncQueueRecords() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   // Entity type options (adjust as per your data)
-  const entityTypeOptions = ['', 'user', 'patient', 'supply', 'task', 'location'];
+  const entityTypeOptions = ['', 'user', 'registration', 'supply', 'task', 'location'];
   const syncStatusOptions = ['', 'success', 'pending', 'failed'];
 
   const [entityTypeIndex, setEntityTypeIndex] = useState(0);
