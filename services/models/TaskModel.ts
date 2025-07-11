@@ -97,3 +97,14 @@ export const insertTaskOffline = (form: {
 
     return task_id;
 };
+
+export const getTasksByUserId = (userId: string) => {
+    return db.getAllSync<any>(
+        `SELECT t.*
+         FROM tasks t
+         INNER JOIN task_assignments ta ON t.task_id = ta.task_id
+         WHERE ta.user_id = ?
+         ORDER BY t.created_at DESC`,
+        [userId]
+    );
+};

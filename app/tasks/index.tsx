@@ -6,66 +6,12 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-// Mock data for tasks
-const mockTasks = [
-  {
-    id: '1',
-    title: 'Task Title 1',
-    assignee: 'Ava Hayes',
-    assignedBy: 'Zaid Khan',
-    status: 'Synced',
-    ago: '2d ago',
-  },
-  {
-    id: '2',
-    title: 'Task Title 2',
-    assignee: 'Liam Carter',
-    assignedBy: 'Zaid Khan',
-    status: 'Unsynced',
-    ago: '1d ago',
-  },
-  {
-    id: '3',
-    title: 'Task Title 3',
-    assignee: 'Olivia Bennett',
-    assignedBy: 'Zaid Khan',
-    status: 'Synced',
-    ago: '3d ago',
-  },
-  {
-    id: '4',
-    title: 'Task Title 4',
-    assignee: 'Noah Thompson',
-    assignedBy: 'Zaid Khan',
-    status: 'Synced',
-    ago: '4d ago',
-  },
-  {
-    id: '5',
-    title: 'Task Title 5',
-    assignee: 'Isabella Reed',
-    assignedBy: 'Zaid Khan',
-    status: 'Unsynced',
-    ago: '2d ago',
-  },
-  {
-    id: '6',
-    title: 'Task Title 6',
-    assignee: 'Ethan Parker',
-    assignedBy: 'Zaid Khan',
-    status: 'Synced',
-    ago: '5d ago',
-  },
-];
-
-const assignees = [
-  'All',
-  ...Array.from(new Set(mockTasks.map((t) => t.assignee))),
-];
+import { useAuth } from '@/context/AuthContext';
+import { getTasksByUserId } from '@/services/models/TaskModel';
 
 export default function TasksList() {
   const router = useRouter();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [assigneeFilter, setAssigneeFilter] = useState('All');
@@ -73,59 +19,49 @@ export default function TasksList() {
   const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   // Animation state for modal
   const modalFadeAnim = useRef(new Animated.Value(0)).current;
   const modalSlideAnim = useRef(new Animated.Value(0)).current;
-
-  // Animate modal open/close
-  useEffect(() => {
-    if (modalVisible) {
-      Animated.parallel([
-        Animated.timing(modalFadeAnim, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(modalSlideAnim, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(modalFadeAnim, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(modalSlideAnim, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        modalFadeAnim.setValue(0);
-        modalSlideAnim.setValue(0);
-      });
-    }
-  }, [modalVisible, modalFadeAnim, modalSlideAnim]);
 
   // Animation state for each task
   const [syncing, setSyncing] = useState<{ [id: string]: boolean }>({});
   const rotationAnims = useRef<{ [id: string]: Animated.Value }>({});
 
+  // Fetch tasks for the logged-in user
+  useEffect(() => {
+    if (user?.user_id) {
+      setLoading(true);
+      try {
+        const userTasks = getTasksByUserId(user.user_id);
+        setTasks(userTasks);
+      } catch (err) {
+        setTasks([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+  }, [user]);
+
+  // Build assignees list from tasks
+  const assignees = [
+    'All',
+    ...Array.from(new Set(tasks.map((t) => t.assignee || t.assignTo || t.user_id || '')))
+  ];
+
   // Filtering logic
-  const filteredTasks = mockTasks.filter((task) => {
+  const filteredTasks = tasks.filter((task) => {
     const matchesSearch =
-      task.title.toLowerCase().includes(search.toLowerCase()) ||
-      task.assignee.toLowerCase().includes(search.toLowerCase());
+      (task.title?.toLowerCase() || '').includes(search.toLowerCase()) ||
+      (task.assignee?.toLowerCase() || '').includes(search.toLowerCase());
     const matchesStatus =
       statusFilter === 'All' ||
-      (statusFilter === 'Synced' && task.status === 'Synced') ||
-      (statusFilter === 'Unsynced' && task.status === 'Unsynced');
+      (statusFilter === 'Synced' && task.status === 'synced') ||
+      (statusFilter === 'Unsynced' && task.status !== 'synced');
     const matchesAssignee =
-      assigneeFilter === 'All' || task.assignee === assigneeFilter;
+      assigneeFilter === 'All' || task.assignee === assigneeFilter || task.assignTo === assigneeFilter;
     return matchesSearch && matchesStatus && matchesAssignee;
   });
 
@@ -203,73 +139,79 @@ export default function TasksList() {
         </TouchableOpacity>
       </View>
       {/* Task List */}
-      <FlatList
-        data={filteredTasks}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        renderItem={({ item }) => {
-          const isSynced = item.status === 'Synced';
-          const isSyncing = syncing[item.id];
-          if (!rotationAnims.current[item.id]) {
-            rotationAnims.current[item.id] = new Animated.Value(0);
-          }
-          const spin = rotationAnims.current[item.id].interpolate({
-            inputRange: [0, 1],
-            outputRange: ['0deg', '360deg'],
-          });
-          return (
-            <TouchableOpacity
-              style={styles.recordRow}
-              activeOpacity={0.8}
-              onPress={() => {
-                setSelectedTask(item);
-                setModalVisible(true);
-              }}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.entityType}>{item.title}</Text>
-                <Text style={styles.recordDetails}>
-                  <Text style={{ color: '#f97316' }}>Assigned to: </Text>
-                  <Text style={{ color: '#bfa58a' }}>{item.assignee}</Text>
-                </Text>
-                <Text style={styles.recordDetails}>
-                  <Text style={{ color: '#f97316' }}>Assigned by: </Text>
-                  <Text style={{ color: '#bfa58a' }}>{item.assignedBy}</Text>
-                </Text>
-              </View>
-              {/* Sync icon or green dot */}
-              {isSynced ? (
-                <View style={styles.greenDot} />
-              ) : (
-                <TouchableOpacity
-                  onPress={e => {
-                    if (!isSyncing) startSyncAnimation(item.id);
-                  }}
-                  activeOpacity={isSyncing ? 1 : 0.7}
-                  disabled={isSyncing}
-                  style={{ marginLeft: 12 }}
-                >
-                  <Animated.Image
-                    source={require('../../assets/sync.png')}
-                    style={{
-                      width: 24,
-                      height: 24,
-                      tintColor: '#f97316',
-                      transform: [{ rotate: spin }],
-                      opacity: isSyncing ? 1 : 0.85,
+      {loading ? (
+        <Text style={{ textAlign: 'center', marginTop: 32, color: '#9e6b47', fontSize: 16 }}>
+          Loading tasks...
+        </Text>
+      ) : (
+        <FlatList
+          data={filteredTasks}
+          keyExtractor={(item) => item.task_id || item.id}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          renderItem={({ item }) => {
+            const isSynced = item.status === 'synced';
+            const isSyncing = syncing[item.task_id];
+            if (!rotationAnims.current[item.task_id]) {
+              rotationAnims.current[item.task_id] = new Animated.Value(0);
+            }
+            const spin = rotationAnims.current[item.task_id].interpolate({
+              inputRange: [0, 1],
+              outputRange: ['0deg', '360deg'],
+            });
+            return (
+              <TouchableOpacity
+                style={styles.recordRow}
+                activeOpacity={0.8}
+                onPress={() => {
+                  setSelectedTask(item);
+                  setModalVisible(true);
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.entityType}>{item.title}</Text>
+                  <Text style={styles.recordDetails}>
+                    <Text style={{ color: '#f97316' }}>Assigned to: </Text>
+                    <Text style={{ color: '#bfa58a' }}>{item.assignee || item.assignTo || '-'}</Text>
+                  </Text>
+                  <Text style={styles.recordDetails}>
+                    <Text style={{ color: '#f97316' }}>Assigned by: </Text>
+                    <Text style={{ color: '#bfa58a' }}>{item.created_by || '-'}</Text>
+                  </Text>
+                </View>
+                {/* Sync icon or green dot */}
+                {isSynced ? (
+                  <View style={styles.greenDot} />
+                ) : (
+                  <TouchableOpacity
+                    onPress={e => {
+                      if (!isSyncing) startSyncAnimation(item.task_id);
                     }}
-                  />
-                </TouchableOpacity>
-              )}
-            </TouchableOpacity>
-          );
-        }}
-        ListEmptyComponent={
-          <Text style={{ textAlign: 'center', marginTop: 32, color: '#9e6b47', fontSize: 16 }}>
-            No tasks found.
-          </Text>
-        }
-      />
+                    activeOpacity={isSyncing ? 1 : 0.7}
+                    disabled={isSyncing}
+                    style={{ marginLeft: 12 }}
+                  >
+                    <Animated.Image
+                      source={require('../../assets/sync.png')}
+                      style={{
+                        width: 24,
+                        height: 24,
+                        tintColor: '#f97316',
+                        transform: [{ rotate: spin }],
+                        opacity: isSyncing ? 1 : 0.85,
+                      }}
+                    />
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+            );
+          }}
+          ListEmptyComponent={
+            <Text style={{ textAlign: 'center', marginTop: 32, color: '#9e6b47', fontSize: 16 }}>
+              No tasks found.
+            </Text>
+          }
+        />
+      )}
       {/* Floating Plus Button */}
       <View style={{ position: 'absolute', right: 24, bottom: 110 }}>
         <TouchableOpacity
@@ -344,24 +286,24 @@ export default function TasksList() {
                 <View style={{ flexDirection: 'row', marginBottom: 12, marginTop: 8 }}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.infoLabel}>Due Date</Text>
-                    <Text style={styles.infoValue}>{selectedTask.dueDate || '-'}</Text>
+                    <Text style={styles.infoValue}>{selectedTask.due_date || '-'}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.infoLabel}>Created By</Text>
-                    <Text style={styles.infoValue}>{selectedTask.assignedBy}</Text>
+                    <Text style={styles.infoValue}>{selectedTask.created_by || '-'}</Text>
                   </View>
                 </View>
                 <View style={styles.divider} />
                 <View style={{ flexDirection: 'row', marginBottom: 12, marginTop: 8 }}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.infoLabel}>Created At</Text>
-                    <Text style={styles.infoValue}>{selectedTask.createdAt || '-'}</Text>
+                    <Text style={styles.infoValue}>{selectedTask.created_at || '-'}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.infoLabel}>Task ID</Text>
                     <Text style={styles.infoValue}>
-                      {selectedTask && selectedTask.taskId && typeof selectedTask.taskId === 'string' 
-                        ? `${selectedTask.taskId.slice(0, 4)}...${selectedTask.taskId.slice(-4)}` 
+                      {selectedTask && selectedTask.task_id && typeof selectedTask.task_id === 'string' 
+                        ? `${selectedTask.task_id.slice(0, 4)}...${selectedTask.task_id.slice(-4)}` 
                         : '-'
                       }
                     </Text>
