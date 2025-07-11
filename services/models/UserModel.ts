@@ -219,3 +219,10 @@ export const updateUserOffline = async (user: {
 export const getUserById = (user_id: string) => {
   return db.getFirstSync<any>(`SELECT * FROM users WHERE user_id = ?`, [user_id]);
 };
+
+export const getAllFieldworkers = (): { user_id: string; name: string; phone_number: string }[] => {
+  return db.getAllSync(
+    `SELECT user_id, name, phone_number FROM users WHERE role = ?`,
+    ['fieldworker']
+  );
+};

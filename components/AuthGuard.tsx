@@ -9,14 +9,41 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   const publicRoutes = [
-  '/',
-  '/authentication/login',
-  '/authentication/register',
-  '/authentication/password-reset/forgot-password',
-  '/authentication/password-reset/reset-password',
-  '/authentication/password-reset/verify-opt',
-];
+    '/',
+    '/authentication/login',
+    '/authentication/register',
+    '/authentication/password-reset/forgot-password',
+    '/authentication/password-reset/reset-password',
+    '/authentication/password-reset/verify-opt',
+  ];
 
+  // Define common routes for all roles
+  const commonRoutes = [
+    '/home',
+    '/register-patients',
+    '/register-patients/create',
+    '/register-patients/index',
+    '/records',
+    '/map',
+    '/maps',
+    '/profile',
+  ];
+
+  // Define allowed routes for each role
+  const roleRoutes: Record<string, string[]> = {
+    volunteer: [...commonRoutes],
+    fieldworker: [...commonRoutes, '/medical-supplies', '/tasks/assignedTasks'],
+    coordinator: [
+      ...commonRoutes,
+      '/medical-supplies',
+      '/tasks/assignedTasks',
+      '/tasks',
+      '/tasks/create',
+      '/tasks/index',
+      '/users',
+    ],
+    // add more roles as needed
+  };
 
   const normalizedPath = pathname.replace(/\/+$/, ''); // strip trailing slashes
   const isPublic = publicRoutes.includes(normalizedPath);
@@ -34,6 +61,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   // 🔒 Redirect unauthenticated users away from protected pages
   if (!user && !isPublic) return <Redirect href="/authentication/login" />;
+
+  // 🔒 Role-based route protection
+  if (user && !isPublic) {
+    const allowedRoutes = roleRoutes[user.role] || [];
+    if (!allowedRoutes.includes(normalizedPath)) {
+      // Redirect to home or a "not authorized" page
+      return <Redirect href="/home" />;
+    }
+  }
 
   return <>{children}</>;
 }

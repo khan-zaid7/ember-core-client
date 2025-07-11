@@ -95,11 +95,15 @@ export default function SyncQueueRecords() {
 
   useEffect(() => {
     const loadRecords = () => {
-      const data = getAllSyncItems();
-      setRecords(data);
+      if (user?.user_id) {
+        const data = getAllSyncItems(user.user_id);
+        setRecords(data);
+      } else {
+        setRecords([]);
+      }
     };
     loadRecords();
-  }, []);
+  }, [user?.user_id]);
 
 
   // Optimized openModal function
