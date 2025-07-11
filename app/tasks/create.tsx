@@ -9,6 +9,10 @@ import { Footer, useFooterNavigation } from '@/components/Footer';
 import { FormInput } from '../../components/FormInput';
 import Header from '../../components/Header';
 import SettingsComponent from '../../components/SettingsComponent';
+import { useAuth } from '@/context/AuthContext';
+import { getAllFieldworkers } from '@/services/models/UserModel';
+import { useEffect } from 'react';
+
 
 // Types for form and errors
 interface TaskForm {
@@ -43,7 +47,7 @@ const initialForm: TaskForm = {
 
 const statusOptions = ['Pending', 'In Progress', 'Completed'];
 const priorityOptions = ['Low', 'Medium', 'High'];
-const assignToOptions = ['Field Worker', 'Volunteer'];
+
 
 // Helper to get formatted current date
 function getCurrentDate() {
@@ -62,6 +66,29 @@ export default function CreateTask() {
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
   const router = useRouter();
+  const { user } = useAuth();
+  const [assignToOptions, setAssignToOptions] = useState<{ name: string; user_id: string }[]>([]);
+  const [selectedFieldworkers, setSelectedFieldworkers] = useState<{ name: string; user_id: string }[]>([]);
+
+
+  useEffect(() => {
+    const fetchFieldworkers = () => {
+      try {
+        const workers = getAllFieldworkers(); // From local SQLite
+        setAssignToOptions(workers); // Array of { user_id, name }
+      } catch (err) {
+        console.error('Failed to fetch fieldworkers:', err);
+      }
+    };
+
+    fetchFieldworkers();
+  }, []);
+
+  useEffect(() => {
+    const userIds = selectedFieldworkers.map(user => user.user_id).join(',');
+    handleChange('assignTo', userIds);
+  }, [selectedFieldworkers]);
+
 
   const handleChange = (key: keyof TaskForm, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -292,9 +319,12 @@ export default function CreateTask() {
                     justifyContent: 'space-between',
                   }}
                 >
-                  <Text style={{ color: form.assignTo ? '#1e293b' : '#64748b', fontSize: 16 }}>
-                    {form.assignTo || 'Assign to'}
+                  <Text style={{ color: selectedFieldworkers.length ? '#1e293b' : '#64748b', fontSize: 16 }}>
+                    {selectedFieldworkers.length > 0
+                      ? selectedFieldworkers.map(w => w.name).join(', ')
+                      : 'Assign to'}
                   </Text>
+
                   <Ionicons name="chevron-down" size={24} color="#64748b" />
                 </TouchableOpacity>
                 <Modal
@@ -309,21 +339,50 @@ export default function CreateTask() {
                     onPressOut={() => setAssignToModalVisible(false)}
                   >
                     <View style={{ backgroundColor: '#fff', borderRadius: 12, paddingVertical: 12, width: 260, elevation: 8 }}>
-                      {assignToOptions.map(option => (
-                        <TouchableOpacity
-                          key={option}
-                          onPress={() => {
-                            handleChange('assignTo', option);
-                            setAssignToModalVisible(false);
-                          }}
-                          style={{ paddingVertical: 16, paddingHorizontal: 18, alignItems: 'flex-start' }}
-                        >
-                          <Text style={{ fontSize: 16, color: '#1e293b' }}>{option}</Text>
-                        </TouchableOpacity>
-                      ))}
+                      {assignToOptions.length === 0 ? (
+                        <Text style={{ padding: 16, color: '#64748b' }}>No fieldworkers found</Text>
+                      ) : (
+                        <View>
+                          {assignToOptions.length === 0 ? (
+                            <Text>No fieldworkers found</Text>
+                          ) : (
+                            assignToOptions.map((worker: { name: string; user_id: string }) => {
+                              const isSelected = selectedFieldworkers.some(w => w.user_id === worker.user_id);
+                              return (
+                                <TouchableOpacity
+                                  key={worker.user_id}
+                                  onPress={() => {
+                                    setSelectedFieldworkers(prev =>
+                                      isSelected
+                                        ? prev.filter(w => w.user_id !== worker.user_id)
+                                        : [...prev, worker]
+                                    );
+                                  }}
+                                  style={{
+                                    paddingVertical: 14,
+                                    paddingHorizontal: 18,
+                                    backgroundColor: isSelected ? '#fed7aa' : 'transparent',
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                  }}
+
+                                >
+                                  <Text style={{ fontSize: 16, color: '#1e293b' }}>{worker.name}</Text>
+                                  {isSelected && <Ionicons name="checkmark-circle" size={20} color="#ef4444" />}
+                                </TouchableOpacity>
+                              );
+                            })
+                          )}
+                        </View>
+
+
+
+                      )}
                     </View>
                   </TouchableOpacity>
                 </Modal>
+
                 <View style={{ minHeight: 18, marginTop: 2 }}>
                   <Text style={{ color: '#ef4444', fontSize: 18 }}>
                     {errors.assignTo || ' '}
