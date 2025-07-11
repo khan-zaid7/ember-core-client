@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { Footer, useFooterNavigation } from '@/components/Footer';
 import { FormInput } from '../../components/FormInput';
@@ -11,6 +12,7 @@ import Header from '../../components/Header';
 import SettingsComponent from '../../components/SettingsComponent';
 import { useAuth } from '@/context/AuthContext';
 import { getAllFieldworkers } from '@/services/models/UserModel';
+import { insertTaskOffline } from '@/services/models/TaskModel';
 import { useEffect } from 'react';
 
 
@@ -33,6 +35,7 @@ interface FormErrors {
   assignTo?: string;
   createdBy?: string;
   dueDate?: string;
+  general?: string;
 }
 
 const initialForm: TaskForm = {
@@ -64,6 +67,7 @@ export default function CreateTask() {
   const [priorityModalVisible, setPriorityModalVisible] = useState(false);
   const [assignToModalVisible, setAssignToModalVisible] = useState(false);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
   const router = useRouter();
   const { user } = useAuth();
@@ -95,13 +99,12 @@ export default function CreateTask() {
   };
 
   const isFormValid =
-    form.title.trim() &&
-    form.description.trim() &&
-    form.status.trim() &&
-    form.priority.trim() &&
-    form.assignTo.trim() &&
-    form.createdBy.trim() &&
-    form.dueDate.trim();
+    !!form.title.trim() &&
+    !!form.description.trim() &&
+    !!form.status.trim() &&
+    !!form.priority.trim() &&
+    !!form.assignTo.trim() &&
+    !!form.dueDate.trim();
 
   const validateForm = () => {
     const tempErrors: FormErrors = {};
@@ -110,10 +113,18 @@ export default function CreateTask() {
     if (!form.status.trim()) tempErrors.status = 'Required';
     if (!form.priority.trim()) tempErrors.priority = 'Required';
     if (!form.assignTo.trim()) tempErrors.assignTo = 'Required';
-    if (!form.createdBy.trim()) tempErrors.createdBy = 'Required';
     if (!form.dueDate.trim()) tempErrors.dueDate = 'Required';
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      const formatted = `${selectedDate.getFullYear()}-${pad(selectedDate.getMonth() + 1)}-${pad(selectedDate.getDate())}`;
+      setForm(prev => ({ ...prev, dueDate: formatted }));
+    }
   };
 
   const handleGetToday = () => {
@@ -122,11 +133,23 @@ export default function CreateTask() {
 
   const handleSave = () => {
     if (!validateForm()) return;
-    // Here you would save the task to your backend or local DB
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
-    setForm(initialForm);
-    // Optionally, navigate back or show a message
+    try {
+      insertTaskOffline({
+        title: form.title,
+        description: form.description,
+        status: form.status,
+        priority: form.priority,
+        assignTo: selectedFieldworkers.map(w => w.user_id), // Pass as array
+        createdBy: user?.user_id ?? '',
+        dueDate: form.dueDate,
+      });
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+      setForm(initialForm);
+      setSelectedFieldworkers([]);
+    } catch (err: any) {
+      setErrors({ ...errors, general: err.message || 'Failed to save task' });
+    }
   };
 
   return (
@@ -389,35 +412,22 @@ export default function CreateTask() {
                   </Text>
                 </View>
               </View>
-              {/* Created By */}
-              <View style={{ marginBottom: 18, height: 54, justifyContent: 'center' }}>
-                <FormInput
-                  value={form.createdBy}
-                  onChangeText={text => handleChange('createdBy', text)}
-                  placeholder="Created By"
-                  theme="light"
-                  fontSize={16}
-                />
-                <View style={{ minHeight: 18, marginTop: 2 }}>
-                  <Text style={{ color: '#ef4444', fontSize: 18 }}>
-                    {errors.createdBy || ' '}
-                  </Text>
-                </View>
-              </View>
               {/* Due Date */}
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#334155', marginBottom: 16 }}>Due Date</Text>
               <View style={{ marginBottom: 24, flexDirection: 'row', alignItems: 'center', gap: 12, height: 54 }}>
                 <View style={{ flex: 1, height: 54, justifyContent: 'center' }}>
-                  <FormInput
-                    value={form.dueDate}
-                    onChangeText={() => { }}
-                    placeholder="Due Date (YYYY-MM-DD)"
-                    theme="light"
-                    keyboardType="default"
-                    secureTextEntry={false}
-                    editable={false}
-                    fontSize={16}
-                  />
+                  <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+                    <FormInput
+                      value={form.dueDate}
+                      onChangeText={() => { }}
+                      placeholder="Due Date (YYYY-MM-DD)"
+                      theme="light"
+                      keyboardType="default"
+                      secureTextEntry={false}
+                      editable={false}
+                      fontSize={16}
+                    />
+                  </TouchableOpacity>
                   <View style={{ minHeight: 18, marginTop: 2 }}>
                     <Text style={{ color: '#ef4444', fontSize: 14 }}>
                       {errors.dueDate || ' '}
@@ -425,12 +435,20 @@ export default function CreateTask() {
                   </View>
                 </View>
                 <TouchableOpacity
-                  onPress={handleGetToday}
+                  onPress={() => setShowDatePicker(true)}
                   style={{ backgroundColor: '#f97316', paddingHorizontal: 18, height: 44, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 18 }}
                 >
-                  <Text style={{ color: '#fff', fontWeight: '600', fontSize: 16 }}>Today</Text>
+                  <Text style={{ color: '#fff', fontWeight: '600', fontSize: 16 }}>Pick</Text>
                 </TouchableOpacity>
               </View>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={form.dueDate ? new Date(form.dueDate) : new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={handleDateChange}
+                />
+              )}
               <TouchableOpacity
                 onPress={handleSave}
                 style={{
