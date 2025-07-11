@@ -7,7 +7,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
-import { getTasksByUserId } from '@/services/models/TaskModel';
+import { getCreatedTasks } from '@/services/models/TaskModel';
+
 
 export default function TasksList() {
   const router = useRouter();
@@ -21,6 +22,8 @@ export default function TasksList() {
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const priorities = ['All', 'Low', 'Normal', 'High', 'Urgent'];
+  const [priorityFilter, setPriorityFilter] = useState('All');
 
   // Animation state for modal
   const modalFadeAnim = useRef(new Animated.Value(0)).current;
@@ -30,18 +33,21 @@ export default function TasksList() {
   const [syncing, setSyncing] = useState<{ [id: string]: boolean }>({});
   const rotationAnims = useRef<{ [id: string]: Animated.Value }>({});
 
-  // Fetch tasks for the logged-in user
+  // Fetch tasks created by the logged-in user
   useEffect(() => {
     if (user?.user_id) {
       setLoading(true);
-      try {
-        const userTasks = getTasksByUserId(user.user_id);
-        setTasks(userTasks);
-      } catch (err) {
-        setTasks([]);
-      } finally {
-        setLoading(false);
-      }
+      (async () => {
+        try {
+          const createdTasks = await getCreatedTasks(user.user_id);
+          setTasks(createdTasks);
+          console.log('Created:', createdTasks);
+        } catch (err) {
+          setTasks([]);
+        } finally {
+          setLoading(false);
+        }
+      })();
     }
   }, [user]);
 
@@ -62,7 +68,9 @@ export default function TasksList() {
       (statusFilter === 'Unsynced' && task.status !== 'synced');
     const matchesAssignee =
       assigneeFilter === 'All' || task.assignee === assigneeFilter || task.assignTo === assigneeFilter;
-    return matchesSearch && matchesStatus && matchesAssignee;
+    const matchesPriority =
+      priorityFilter === 'All' || (task.priority && task.priority.toLowerCase() === priorityFilter.toLowerCase());
+    return matchesSearch && matchesStatus && matchesAssignee && matchesPriority;
   });
 
   // Dropdown cycling logic
@@ -74,6 +82,10 @@ export default function TasksList() {
   const cycleAssignee = () => {
     const idx = assignees.indexOf(assigneeFilter);
     setAssigneeFilter(assignees[(idx + 1) % assignees.length]);
+  };
+  const cyclePriority = () => {
+    const idx = priorities.findIndex(p => p.toLowerCase() === priorityFilter.toLowerCase());
+    setPriorityFilter(priorities[(idx + 1) % priorities.length]);
   };
 
   // Helper to start sync animation for a task
@@ -128,13 +140,13 @@ export default function TasksList() {
           <Text style={styles.filterButtonText}>Status: {statusFilter}</Text>
           <MaterialIcons name="arrow-drop-down" size={20} color="#1c130d" />
         </TouchableOpacity>
-        {/* Assignee Filter */}
+        {/* Priority Filter */}
         <TouchableOpacity
           style={styles.filterButton}
           activeOpacity={0.7}
-          onPress={cycleAssignee}
+          onPress={cyclePriority}
         >
-          <Text style={styles.filterButtonText}>Assignee</Text>
+          <Text style={styles.filterButtonText}>Priority: {priorityFilter}</Text>
           <MaterialIcons name="arrow-drop-down" size={20} color="#1c130d" />
         </TouchableOpacity>
       </View>
@@ -158,6 +170,8 @@ export default function TasksList() {
               inputRange: [0, 1],
               outputRange: ['0deg', '360deg'],
             });
+            // Prepare assignees as an array
+            const assigneesArr = item.assignees ? item.assignees.split(',').map((n: string) => n.trim()).filter(Boolean) : [];
             return (
               <TouchableOpacity
                 style={styles.recordRow}
@@ -168,10 +182,30 @@ export default function TasksList() {
                 }}
               >
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.entityType}>{item.title}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                    <Text style={styles.entityType}>{item.title}</Text>
+                    <View style={{
+                      backgroundColor: getPriorityColor(item.priority),
+                      borderRadius: 6,
+                      paddingHorizontal: 8,
+                      paddingVertical: 2,
+                      marginLeft: 8,
+                      alignSelf: 'flex-start',
+                    }}>
+                      <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>{getPriorityDisplay(item.priority)}</Text>
+                    </View>
+                  </View>
                   <Text style={styles.recordDetails}>
                     <Text style={{ color: '#f97316' }}>Assigned to: </Text>
-                    <Text style={{ color: '#bfa58a' }}>{item.assignee || item.assignTo || '-'}</Text>
+                    {assigneesArr.length > 0 ? (
+                      assigneesArr.map((name: string, idx: number) => (
+                        <Text key={name + idx} style={{ color: '#bfa58a' }}>
+                          {name}{idx < assigneesArr.length - 1 ? ', ' : ''}
+                        </Text>
+                      ))
+                    ) : (
+                      <Text style={{ color: '#bfa58a' }}>-</Text>
+                    )}
                   </Text>
                   <Text style={styles.recordDetails}>
                     <Text style={{ color: '#f97316' }}>Assigned by: </Text>
@@ -239,89 +273,121 @@ export default function TasksList() {
       {/* Task Details Modal */}
       <Modal
         visible={modalVisible}
-        transparent
-        animationType="none"
+        transparent={true}
+        animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
-        <Animated.View style={[styles.modalOverlay, { opacity: modalFadeAnim }]}> {/* Fade animation */}
-          <Pressable style={{ flex: 1 }} onPress={() => setModalVisible(false)} />
-        </Animated.View>
-        <Animated.View style={[styles.modalSheet, {
-          transform: [
-            {
-              translateY: modalSlideAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [300, 0],
-              }),
-            },
-          ],
-        }]}> {/* Slide up animation */}
-          <ScrollView showsVerticalScrollIndicator={true}>
-            {/* Drag handle */}
-            <View style={{ alignItems: 'center', marginTop: 8, marginBottom: 8 }}>
-              <View style={{ width: 48, height: 5, borderRadius: 3, backgroundColor: '#e5ded7' }} />
-            </View>
-            {/* Title and close */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-              <View style={{ flex: 1 }} />
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#161412', textAlign: 'center', flex: 2 }}>Task Details</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)} style={{ flex: 1, alignItems: 'flex-end', paddingRight: 2 }}>
-                <MaterialIcons name="close" size={28} color="#161412" />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.divider} />
-            {selectedTask && (
-              <>
-                <View style={{ flexDirection: 'row', marginBottom: 12 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.infoLabel}>Title</Text>
-                    <Text style={styles.infoValue}>{selectedTask.title}</Text>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <ScrollView showsVerticalScrollIndicator={true}>
+              {/* Drag handle */}
+              <View style={{ alignItems: 'center', marginTop: 8, marginBottom: 8 }}>
+                <View style={{ width: 48, height: 5, borderRadius: 3, backgroundColor: '#e5ded7' }} />
+              </View>
+              {/* Title and close */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+                <View style={{ flex: 1 }} />
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#161412', textAlign: 'center', flex: 2 }}>Task Details</Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)} style={{ flex: 1, alignItems: 'flex-end', paddingRight: 2 }}>
+                  <Text style={{ fontSize: 24, color: '#161412' }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.divider} />
+              {selectedTask && (
+                <>
+                  {/* First row */}
+                  <View style={{ flexDirection: 'row', marginBottom: 12 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.infoLabel}>Title</Text>
+                      <Text style={styles.infoValue}>{selectedTask.title}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.infoLabel}>Status</Text>
+                      <Text style={styles.infoValue}>{selectedTask.status}</Text>
+                    </View>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.infoLabel}>Status</Text>
-                    <Text style={styles.infoValue}>{selectedTask.status}</Text>
+                  <View style={styles.divider} />
+                  {/* Priority and Assigned To row */}
+                  <View style={{ flexDirection: 'row', marginBottom: 12, marginTop: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.infoLabel}>Priority</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={{
+                          backgroundColor: getPriorityColor(selectedTask.priority),
+                          borderRadius: 6,
+                          paddingHorizontal: 8,
+                          paddingVertical: 2,
+                          marginRight: 8,
+                          alignSelf: 'flex-start',
+                        }}>
+                          <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>{getPriorityDisplay(selectedTask.priority)}</Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.infoLabel}>Assigned To</Text>
+                      {selectedTask.assignees && selectedTask.assignees.split(',').filter((n: string) => n.trim()).length > 0 ? (
+                        selectedTask.assignees.split(',').map((name: string, idx: number) => (
+                          <Text key={name + idx} style={styles.infoValue}>
+                            {name.trim()}
+                          </Text>
+                        ))
+                      ) : (
+                        <Text style={styles.infoValue}>-</Text>
+                      )}
+                    </View>
                   </View>
-                </View>
-                <View style={styles.divider} />
-                <View style={{ flexDirection: 'row', marginBottom: 12, marginTop: 8 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.infoLabel}>Due Date</Text>
-                    <Text style={styles.infoValue}>{selectedTask.due_date || '-'}</Text>
+                  <View style={styles.divider} />
+                  {/* Second row */}
+                  <View style={{ flexDirection: 'row', marginBottom: 12, marginTop: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.infoLabel}>Due Date</Text>
+                      <Text style={styles.infoValue}>{selectedTask.due_date || '-'}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.infoLabel}>Created At</Text>
+                      <Text style={styles.infoValue}>{selectedTask.created_at || '-'}</Text>
+                    </View>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.infoLabel}>Created By</Text>
-                    <Text style={styles.infoValue}>{selectedTask.created_by || '-'}</Text>
+                  <View style={styles.divider} />
+                  {/* Task ID row */}
+                  <View style={{ flexDirection: 'row', marginBottom: 12, marginTop: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.infoLabel}>Task ID</Text>
+                      <Text style={styles.infoValue}>
+                        {selectedTask && selectedTask.task_id && typeof selectedTask.task_id === 'string' 
+                          ? `${selectedTask.task_id.slice(0, 4)}...${selectedTask.task_id.slice(-4)}` 
+                          : '-'}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-                <View style={styles.divider} />
-                <View style={{ flexDirection: 'row', marginBottom: 12, marginTop: 8 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.infoLabel}>Created At</Text>
-                    <Text style={styles.infoValue}>{selectedTask.created_at || '-'}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.infoLabel}>Task ID</Text>
-                    <Text style={styles.infoValue}>
-                      {selectedTask && selectedTask.task_id && typeof selectedTask.task_id === 'string' 
-                        ? `${selectedTask.task_id.slice(0, 4)}...${selectedTask.task_id.slice(-4)}` 
-                        : '-'
-                      }
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.divider} />
-                {/* Description at bottom */}
-                <Text style={styles.infoLabel}>Description</Text>
-                <Text style={[styles.infoValue, { marginBottom: 16 }]}>{selectedTask.description || '-'}</Text>
-              </>
-            )}
-            {/* Footer Buttons - removed */}
-          </ScrollView>
-        </Animated.View>
+                  <View style={styles.divider} />
+                  {/* Description at bottom */}
+                  <Text style={styles.infoLabel}>Description</Text>
+                  <Text style={[styles.infoValue, { marginBottom: 16 }]}>{selectedTask.description || '-'}</Text>
+                </>
+              )}
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
 }
+
+// Priority color and display helpers (move to top-level so both card and modal can use)
+const getPriorityColor = (priority: string) => {
+  switch ((priority || '').toLowerCase()) {
+    case 'urgent': return '#ef4444';
+    case 'high': return '#f97316';
+    case 'normal': return '#3b82f6';
+    case 'low': return '#22c55e';
+    default: return '#6b7280';
+  }
+};
+const getPriorityDisplay = (priority: string) => {
+  return priority ? priority.charAt(0).toUpperCase() + priority.slice(1) : 'Normal';
+};
 
 const styles = StyleSheet.create({
   filterButton: {

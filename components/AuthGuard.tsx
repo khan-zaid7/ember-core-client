@@ -24,6 +24,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     '/register-patients/create',
     '/register-patients/index',
     '/records',
+    '/map',
     '/maps',
     '/profile',
   ];

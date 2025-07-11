@@ -59,28 +59,10 @@ const roleActions: Record<string, Array<{ path: string; title: string; descripti
       icon: <MaterialIcons name="medical-services" size={48} color="#f97316" />,
     },
     {
-      path: '/tasks/assignedTasks',
-      title: 'Assigned Tasks',
-      description: 'View your assigned tasks',
-      icon: <MaterialIcons name="assignment-ind" size={48} color="#f97316" />,
-    },
-    {
       path: '/tasks',
-      title: 'All Tasks',
-      description: 'View all tasks',
-      icon: <MaterialIcons name="assignment" size={48} color="#f97316" />,
-    },
-    {
-      path: '/tasks/create',
-      title: 'Create Task',
-      description: 'Create a new task',
-      icon: <MaterialIcons name="add-task" size={48} color="#f97316" />,
-    },
-    {
-      path: '/tasks/index',
-      title: 'Task Index',
-      description: 'Browse all tasks',
-      icon: <MaterialIcons name="list" size={48} color="#f97316" />,
+      title: 'Task Management',
+      description: 'Manage all tasks and create new ones',
+      icon: <MaterialIcons name="dashboard" size={48} color="#f97316" />,
     },
     {
       path: '/users',

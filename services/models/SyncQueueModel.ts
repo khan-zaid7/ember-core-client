@@ -12,16 +12,18 @@ export interface SyncQueueItem {
 }
 
 
-export const getAllSyncItems = (): SyncQueueItem[] => {
+export const getAllSyncItems = (userId: string): SyncQueueItem[] => {
     const results = db.getAllSync<SyncQueueItem>(
-        `SELECT * FROM sync_queue `
+        `SELECT * FROM sync_queue WHERE created_by = ?`,
+        [userId]
     );
     return results;
 }
 
-export const getPendingSyncItems = (): SyncQueueItem[] => {
+export const getPendingSyncItems = (userId: string): SyncQueueItem[] => {
     const results = db.getAllSync<SyncQueueItem>(
-        `SELECT * FROM sync_queue WHERE status IS NULL OR status = 'pending'`
+        `SELECT * FROM sync_queue WHERE (status IS NULL OR status = 'pending') AND created_by = ?`,
+        [userId]
     );
     return results;
 }

@@ -3,9 +3,10 @@ import { markEntitySynced } from '@/services/models/GenericModel';
 import { syncEntity } from './entityDispatchers';
 
 
-export const processSyncQueue = async () => {
+// Accept userId as a parameter
+export const processSyncQueue = async (userId: string) => {
   try {
-    const pendingItems = await getPendingSyncItems();
+    const pendingItems = await getPendingSyncItems(userId);
 
     // ✅ Enforce order: sync parent entities first
     const priorityOrder = ['user', 'location', 'registration', 'supply', 'task', 'task_assignment', 'alert'];
