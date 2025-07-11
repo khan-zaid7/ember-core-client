@@ -81,3 +81,7 @@ export const getAllRegistrations = () => {
     `SELECT registration_id, person_name, synced, gender, timestamp FROM registrations ORDER BY timestamp DESC`
   );
 };
+
+export const deleteRegistrationOffline = (registrationId: string) => {
+  db.runSync('DELETE FROM registrations WHERE registration_id = ?', [registrationId]);
+};

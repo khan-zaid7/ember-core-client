@@ -168,7 +168,10 @@ export default function RegisterOffline() {
       console.log('✅ Inserted Registration:', inserted);
 
       setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+      setTimeout(() => {
+        setShowSuccess(false);
+        router.replace('/register-patients');
+      }, 1200);
       setForm(initialForm);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Something went wrong');

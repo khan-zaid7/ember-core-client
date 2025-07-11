@@ -75,4 +75,8 @@ export const getAllSupplies = () => {
   }>(
     `SELECT supply_id, item_name, quantity, expiry_date, location_id, timestamp, synced, status FROM supplies ORDER BY timestamp DESC`
   );
+};
+
+export const deleteSupplyOffline = (supplyId: string) => {
+  db.runSync('DELETE FROM supplies WHERE supply_id = ?', [supplyId]);
 }; 

@@ -144,7 +144,10 @@ export default function RegisterSupply() {
         timestamp: form.timestamp,
       });
       setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+      setTimeout(() => {
+        setShowSuccess(false);
+        router.replace('/medical-supplies');
+      }, 1200);
       setForm(initialForm);
       setLocation(null);
     } catch (error: any) {

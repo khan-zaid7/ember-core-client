@@ -1,12 +1,12 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, TextInput, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, FlatList, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native'; // ✅ added
+import { useFocusEffect } from '@react-navigation/native';
 import DashboardHeader from '@/components/Header';
 import { Footer, useFooterNavigation } from '@/components/Footer';
-import { getAllSupplies } from '@/services/models/SuppliesModel';
+import { getAllSupplies, deleteSupplyOffline } from '@/services/models/SuppliesModel';
 import SettingsComponent from '@/components/SettingsComponent';
 
 type SupplyItem = {
@@ -29,7 +29,7 @@ export default function MedicalSuppliesList() {
 
   // ✅ Load data on screen focus
   useFocusEffect(
-    useCallback(() => {
+    React.useCallback(() => {
       try {
         const data = getAllSupplies().map((item) => ({
           id: item.supply_id,
@@ -52,6 +52,11 @@ export default function MedicalSuppliesList() {
     supply.itemName.toLowerCase().includes(search.toLowerCase()) ||
     supply.locationId.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleDelete = (supplyId: string) => {
+    deleteSupplyOffline(supplyId);
+    setSupplies(prev => prev.filter(item => item.id !== supplyId));
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -98,6 +103,21 @@ export default function MedicalSuppliesList() {
               <Text style={{ fontSize: 14, color: '#9c8749', marginBottom: 2 }}>{item.timestamp}</Text>
               <Text style={{ fontSize: 14, color: item.synced === 1 ? '#1c180d' : '#f97316', marginBottom: 2 }}>{item.status || (item.synced === 1 ? 'Synced' : 'Unsynced')}</Text>
             </View>
+            <TouchableOpacity
+              onPress={() => {
+                Alert.alert(
+                  'Delete Supply',
+                  'Are you sure you want to delete this supply?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Delete', style: 'destructive', onPress: () => handleDelete(item.id) }
+                  ]
+                );
+              }}
+              style={{ padding: 8, marginLeft: 8 }}
+            >
+              <MaterialIcons name="delete" size={22} color="#ef4444" />
+            </TouchableOpacity>
           </View>
         )}
         ListEmptyComponent={

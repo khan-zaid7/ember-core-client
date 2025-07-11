@@ -1,12 +1,12 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, TextInput, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, FlatList, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native'; // ✅ added
 import DashboardHeader from '@/components/Header';
 import { Footer, useFooterNavigation } from '@/components/Footer';
-import { getAllRegistrations } from '@/services/models/RegistrationModel';
+import { getAllRegistrations, deleteRegistrationOffline } from '@/services/models/RegistrationModel';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 dayjs.extend(relativeTime);
@@ -32,7 +32,7 @@ export default function UsersList() {
 
   // ✅ Refetch on focus
   useFocusEffect(
-    useCallback(() => {
+    React.useCallback(() => {
       try {
         const data = getAllRegistrations().map((item) => ({
           id: item.registration_id,
@@ -53,6 +53,11 @@ export default function UsersList() {
     (!syncFilter || u.status === syncFilter) &&
     (!genderFilter || u.gender === genderFilter)
   );
+
+  const handleDelete = (registrationId: string) => {
+    deleteRegistrationOffline(registrationId);
+    setRegistrations(prev => prev.filter(item => item.id !== registrationId));
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
@@ -153,9 +158,26 @@ export default function UsersList() {
                 Registration ID: {item.id}
               </Text>
             </View>
-            <Text style={[styles.userStatus, { color: item.status === 'Synced' ? '#1c130d' : '#f97316', textAlign: 'right' }]}>
-              {item.status} • {item.ago}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={[styles.userStatus, { color: item.status === 'Synced' ? '#1c130d' : '#f97316', textAlign: 'right' }]}>
+                {item.status} • {item.ago}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  Alert.alert(
+                    'Delete Patient',
+                    'Are you sure you want to delete this patient?',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Delete', style: 'destructive', onPress: () => handleDelete(item.id) }
+                    ]
+                  );
+                }}
+                style={{ padding: 8, marginLeft: 8 }}
+              >
+                <MaterialIcons name="delete" size={22} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
           </View>
         )}
         ListEmptyComponent={
