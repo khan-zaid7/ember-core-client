@@ -268,7 +268,6 @@ export default function SyncQueueRecords() {
         keyExtractor={(item) => item.sync_id}
         contentContainerStyle={{ paddingBottom: 32 }}
         renderItem={({ item }) => {
-          console.log(item.status)
           const isSynced = item.status === 'success';
           const isSyncing = syncing[item.sync_id];
 

@@ -149,7 +149,7 @@ export default function MapScreen() {
         title="Map"
         showSettings={!pickerMode}
         onSettingsPress={() => setSettingsModalVisible(true)}
-        onBackPress={pickerMode ? () => router.back() : () => router.push('/')}
+        onBackPress={pickerMode ? () => router.back() : () => router.replace('/')}
       />
 
       {/* ✅ Use SettingsComponent instead of old Modal */}
@@ -282,7 +282,7 @@ export default function MapScreen() {
               <TouchableOpacity
                 onPress={() => {
                   if (selectedLocation) {
-                    router.replace({
+                    router.push({
                       pathname: params.returnTo as any,
                       params: {
                         ...params,
