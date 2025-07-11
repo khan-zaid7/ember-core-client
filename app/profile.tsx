@@ -1,5 +1,5 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
@@ -18,11 +18,12 @@ import { Footer, useFooterNavigation } from '@/components/Footer';
 import { updateUserOffline, getUserById } from '@/services/models/UserModel';
 import { useAuth } from '@/context/AuthContext';
 import SettingsComponent from '../components/SettingsComponent';
-import { useLocalSearchParams } from 'expo-router';
+import { getUserLocation, upsertLocationOffline } from '@/services/models/LocationsModel';
 
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
 
   const [form, setForm] = useState({
     name: '',
@@ -41,6 +42,8 @@ export default function ProfileScreen() {
   const [photo, setPhoto] = useState(fallbackUrl);
   const [userId, setUserId] = useState<string | null>(null);
   const { user } = useAuth();
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
 
   const applyUserDetails = (details: any) => {
     setForm({
@@ -62,6 +65,40 @@ export default function ProfileScreen() {
     };
     loadUserDetails();
   }, [user?.user_id]);
+
+  useEffect(() => {
+    console.log('🧭 Params in effect:', params);
+
+    const latNum = Number(params.latitude);
+    const lngNum = Number(params.longitude);
+
+    if (!isNaN(latNum) && !isNaN(lngNum)) {
+      console.log('📍 Setting location state from params:', latNum, lngNum);
+      setLatitude(latNum);
+      setLongitude(lngNum);
+      setLocation(`${latNum},${lngNum}`);
+      return; // skip fetching stored location
+    }
+
+    // fetch stored location if no valid params
+    const fetchUserLocation = async () => {
+      if (user?.user_id) {
+        const loc = await getUserLocation(user.user_id);
+        if (loc && loc.latitude && loc.longitude) {
+          console.log('📍 Fetched location from storage:', loc.latitude, loc.longitude);
+          setLatitude(loc.latitude);
+          setLongitude(loc.longitude);
+          setLocation(`${loc.latitude},${loc.longitude}`);
+        } else {
+          console.log('⚠️ No location found for user in storage');
+        }
+      }
+    };
+
+    fetchUserLocation();
+  }, [user?.user_id, params.latitude, params.longitude]);
+
+
 
   const handleAddPhoto = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -88,6 +125,7 @@ export default function ProfileScreen() {
     }
 
     try {
+      // Save user profile
       await updateUserOffline({
         user_id: userId,
         name: form.name.trim(),
@@ -96,6 +134,26 @@ export default function ProfileScreen() {
         phone_number: form.phone_number.trim(),
         image_uri: photo,
       });
+
+      // Save location if available
+      if (latitude !== null && longitude !== null) {
+        try {
+          upsertLocationOffline({
+            userId: userId,
+            name: form.name.trim() + "'s Location",
+            type: 'user',
+            latitude,
+            longitude,
+            addedAt: new Date().toISOString(),
+            description: 'Profile location',
+          });
+        } catch (err: any) {
+          // Ignore duplicate error, show others
+          if (!String(err.message).includes('already exists')) {
+            Alert.alert('Location Error', err.message || 'Failed to save location.');
+          }
+        }
+      }
 
       const updated = await getUserById(userId);
       applyUserDetails(updated);
@@ -113,13 +171,13 @@ export default function ProfileScreen() {
     const initials = words.map(word => word.charAt(0).toUpperCase()).slice(0, 2).join('');
     return initials || 'U';
   };
-
-  const params = useLocalSearchParams();
   useEffect(() => {
-    if (params.latitude && params.longitude) {
-      setLocation(`${params.latitude},${params.longitude}`);
+    if (latitude !== null && longitude !== null) {
+      setLocation(`${latitude},${longitude}`);
     }
-  }, [params.latitude, params.longitude]);
+  }, [latitude, longitude]);
+
+
 
 
   return (
@@ -135,7 +193,7 @@ export default function ProfileScreen() {
         visible={settingsModalVisible}
         onClose={() => setSettingsModalVisible(false)}
       />
-
+  
       <View style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ paddingVertical: 24, paddingHorizontal: 24 }}>
           <View style={{ alignItems: 'center', marginBottom: 24 }}>

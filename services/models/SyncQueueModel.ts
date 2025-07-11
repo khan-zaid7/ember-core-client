@@ -11,6 +11,14 @@ export interface SyncQueueItem {
     created_by: string;
 }
 
+
+export const getAllSyncItems = (): SyncQueueItem[] => {
+    const results = db.getAllSync<SyncQueueItem>(
+        `SELECT * FROM sync_queue `
+    );
+    return results;
+}
+
 export const getPendingSyncItems = (): SyncQueueItem[] => {
     const results = db.getAllSync<SyncQueueItem>(
         `SELECT * FROM sync_queue WHERE status IS NULL OR status = 'pending'`
@@ -50,5 +58,61 @@ export const makeConflict = (
     console.log(`⚠️ Conflict recorded in sync_queue [${sync_id}] on ${conflict_field}`);
   } catch (err) {
     console.error('❌ Failed to mark conflict in sync_queue:', err);
+  }
+};
+
+
+export const getEntityDetails = (entityType: string, entityId: string): any => {
+  try {
+    switch (entityType.toLowerCase()) {
+      case 'user':
+        return db.getFirstSync(
+          `SELECT * FROM users WHERE user_id = ?`,
+          [entityId]
+        );
+
+      case 'registration':
+        return db.getFirstSync(
+          `SELECT * FROM registrations WHERE registration_id = ?`,
+          [entityId]
+        );
+
+      case 'supply':
+        return db.getFirstSync(
+          `SELECT * FROM supplies WHERE supply_id = ?`,
+          [entityId]
+        );
+
+      case 'task':
+        return db.getFirstSync(
+          `SELECT * FROM tasks WHERE task_id = ?`,
+          [entityId]
+        );
+
+      case 'task_assignment':
+        return db.getFirstSync(
+          `SELECT * FROM task_assignments WHERE assignment_id = ?`,
+          [entityId]
+        );
+
+      case 'location':
+        return db.getFirstSync(
+          `SELECT * FROM locations WHERE location_id = ?`,
+          [entityId]
+        );
+
+      case 'alert':
+        return db.getFirstSync(
+          `SELECT * FROM alerts WHERE alert_id = ?`,
+          [entityId]
+        );
+
+      default:
+        console.warn(`⚠️ Unknown entityType "${entityType}" for entityId "${entityId}"`);
+        return null;
+    }
+  } catch (error) {
+    console.error(`❌ Failed to fetch entity details for [${entityType}:${entityId}]`, error);
+    return null;
   }
 };
