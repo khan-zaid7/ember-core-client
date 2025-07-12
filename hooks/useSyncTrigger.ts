@@ -17,16 +17,16 @@ export const useSyncTrigger = () => {
                 processSyncQueue(user.user_id);
             }
         });
-        // Timer-based retry
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        intervalRef.current = setInterval(() => {
-            if (isOnline && user.user_id) {
-                processSyncQueue(user.user_id);
-            }
-        }, 30000); // 30 seconds
-        return () => {
-            unsubscribe();
-            if (intervalRef.current) clearInterval(intervalRef.current);
-        };
+        // // Timer-based retry
+        // if (intervalRef.current) clearInterval(intervalRef.current);
+        // intervalRef.current = setInterval(() => {
+        //     if (isOnline && user.user_id) {
+        //         processSyncQueue(user.user_id);
+        //     }
+        // }, 30000); // 30 seconds
+        // return () => {
+        //     unsubscribe();
+        //     if (intervalRef.current) clearInterval(intervalRef.current);
+        // };
     }, [user?.user_id, loading]);
 };

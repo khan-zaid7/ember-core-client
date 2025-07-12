@@ -36,10 +36,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   // Define allowed routes for each role
   const roleRoutes: Record<string, string[]> = {
     volunteer: [...commonRoutes],
-    fieldworker: [...commonRoutes, '/medical-supplies', '/tasks/assignedTasks'],
+    fieldworker: [
+      ...commonRoutes, '/medical-supplies', '/tasks/assignedTasks', '/medical-supplies/index',
+      '/medical-supplies/create',
+    ],
     coordinator: [
       ...commonRoutes,
       '/medical-supplies',
+      '/medical-supplies/index',
+      '/medical-supplies/create',
       '/tasks/assignedTasks',
       '/tasks',
       '/tasks/create',
