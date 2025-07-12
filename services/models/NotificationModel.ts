@@ -13,7 +13,6 @@ export interface NotificationModel {
   read?: number;
   synced?: number;
   sync_status_message?: string;
-  server_id?: string;
   updated_at?: string;
   archived?: number;
 }
@@ -21,8 +20,8 @@ export interface NotificationModel {
 export const insertNotification = (notification: NotificationModel) => {
   db.runSync(
     `INSERT OR REPLACE INTO notifications (
-      notification_id, user_id, title, message, type, entity_type, entity_id, received_at, read, synced, sync_status_message, server_id, updated_at, archived
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+      notification_id, user_id, title, message, type, entity_type, entity_id, received_at, read, synced, sync_status_message, updated_at, archived
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
     [
       notification.notification_id || '',
       notification.user_id || '',
@@ -35,7 +34,6 @@ export const insertNotification = (notification: NotificationModel) => {
       notification.read ?? 0,
       notification.synced ?? 0,
       notification.sync_status_message ?? '',
-      notification.server_id ?? '',
       notification.updated_at ?? '',
       notification.archived ?? 0
     ]

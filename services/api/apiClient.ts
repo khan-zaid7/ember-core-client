@@ -1,8 +1,11 @@
 // services/api/apiClient.ts
 import axios from 'axios';
+import { insertNotification } from '../models/NotificationModel';
+import { generateUUID } from '../../utils/generateUUID';
+import { showNotification, checkForNewNotifications } from '../../utils/notificationManager';
 
 // const API_BASE_URL = 'http://localhost:5000/api/sync'; 
-const API_BASE_URL = 'http://192.168.4.145:5000/api/sync'; 
+const API_BASE_URL = 'http://172.20.10.4:5000/api/sync'; 
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -10,6 +13,40 @@ const axiosInstance = axios.create({
   timeout: 5000,
 });
 
+// Helper function to handle conflict errors and create notifications
+const handleConflictError = (error: any, entityType: string, entityData: any) => {
+  if (error.response?.status === 409) {
+    const errorMessage = `A conflict was detected while syncing ${entityType}: ${error.response.data?.message || 'Data already exists or has been modified'}`;
+    
+    // Create a notification for the conflict
+    const notification = {
+      notification_id: generateUUID(),
+      user_id: entityData.user_id || '',
+      title: 'Sync Conflict',
+      message: errorMessage,
+      type: 'warning',
+      entity_type: entityType,
+      entity_id: entityData.id || entityData[`${entityType}_id`] || '',
+      received_at: new Date().toISOString(),
+      read: 0,
+      synced: 1, // This notification doesn't need to be synced as it's about a sync issue
+      archived: 0
+    };
+    
+    // Insert the notification into the database
+    insertNotification(notification);
+    
+    // Show the notification in the UI
+    showNotification(errorMessage, 'warning', 'Sync Conflict');
+    
+    // Trigger a check for any new notifications in the database
+    checkForNewNotifications();
+    
+    // Re-throw the error to be handled by the caller
+    throw error;
+  }
+  throw error;
+};
 
 export const sendUserToServer = async (user: any) => {
   try {
@@ -26,6 +63,9 @@ export const sendUserToServer = async (user: any) => {
     return response.data;
   } catch (error: any) {
     console.error('❌ Failed to sync user:', error.response?.data || error.message);
+    if (error.response?.status === 409) {
+      handleConflictError(error, 'user', user);
+    }
     throw error;
   }
 };
@@ -39,6 +79,9 @@ export const sendRegistrationToServer = async (registration: any) => {
     return response.data;
   } catch (error: any) {
     console.error('❌ Failed to sync registration:', error.response?.data || error.message);
+    if (error.response?.status === 409) {
+      handleConflictError(error, 'registration', registration);
+    }
     throw error;
   }
 };
@@ -52,6 +95,9 @@ export const sendLocationToServer = async (location: any) => {
     return response.data;
   } catch (error: any) {
     console.error('❌ Failed to sync location:', error.response?.data || error.message);
+    if (error.response?.status === 409) {
+      handleConflictError(error, 'location', location);
+    }
     throw error;
   }
 };
@@ -65,6 +111,9 @@ export const sendSupplyToServer = async (supply: any) => {
     return response.data;
   } catch (error: any) {
     console.error('❌ Failed to sync supply:', error.response?.data || error.message);
+    if (error.response?.status === 409) {
+      handleConflictError(error, 'supply', supply);
+    }
     throw error;
   }
 };
@@ -78,6 +127,9 @@ export const sendTaskToServer = async (task: any) => {
     return response.data;
   } catch (error: any) {
     console.error('❌ Failed to sync task:', error.response?.data || error.message);
+    if (error.response?.status === 409) {
+      handleConflictError(error, 'task', task);
+    }
     throw error;
   }
 };
@@ -91,6 +143,9 @@ export const sendTaskAssignmentToServer = async (assignment: any) => {
     return response.data;
   } catch (error: any) {
     console.error('❌ Failed to sync task assignment:', error.response?.data || error.message);
+    if (error.response?.status === 409) {
+      handleConflictError(error, 'task_assignment', assignment);
+    }
     throw error;
   }
 };
@@ -104,6 +159,9 @@ export const sendAlertToServer = async (alert: any) => {
     return response.data;
   } catch (error: any) {
     console.error('❌ Failed to sync alert:', error.response?.data || error.message);
+    if (error.response?.status === 409) {
+      handleConflictError(error, 'alert', alert);
+    }
     throw error;
   }
 };
@@ -116,6 +174,9 @@ export const sendNotificationToServer = async (notification: any) => {
     return response.data;
   } catch (error: any) {
     console.error('❌ Failed to sync notification:', error.response?.data || error.message);
+    if (error.response?.status === 409) {
+      handleConflictError(error, 'notification', notification);
+    }
     throw error;
   }
 };
