@@ -17,6 +17,8 @@ interface SupplyForm {
   expiryDate: string;
   locationId: string;
   timestamp: string;
+  barcode?: string;
+  sku?: string;
 }
 
 interface FormErrors {
@@ -25,6 +27,8 @@ interface FormErrors {
   expiryDate?: string;
   locationId?: string;
   timestamp?: string;
+  barcode?: string;
+  sku?: string;
 }
 
 const initialForm: SupplyForm = {
@@ -33,6 +37,8 @@ const initialForm: SupplyForm = {
   expiryDate: '',
   locationId: '',
   timestamp: '',
+  barcode: '',
+  sku: '',
 };
 
 function getCurrentTimestamp() {
@@ -142,6 +148,8 @@ export default function RegisterSupply() {
         expiryDate: form.expiryDate,
         locationId: location ? `${location.latitude},${location.longitude}` : '',
         timestamp: form.timestamp,
+        barcode: form.barcode,
+        sku: form.sku
       });
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
@@ -194,6 +202,31 @@ export default function RegisterSupply() {
                   fontSize={16}
                 />
                 <Text style={{ color: '#ef4444', fontSize: 14, marginTop: 2 }}>{errors.quantity || ' '}</Text>
+              </View>
+              
+              {/* Barcode */}
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#334155', marginBottom: 16 }}>Inventory Tracking</Text>
+              <View style={{ marginBottom: 18, height: 54, justifyContent: 'center' }}>
+                <FormInput
+                  value={form.barcode || ''}
+                  onChangeText={text => handleChange('barcode', text)}
+                  placeholder="Barcode (Optional)"
+                  theme="light"
+                  fontSize={16}
+                />
+                <Text style={{ color: '#ef4444', fontSize: 14, marginTop: 2 }}>{errors.barcode || ' '}</Text>
+              </View>
+              
+              {/* SKU */}
+              <View style={{ marginBottom: 18, height: 54, justifyContent: 'center' }}>
+                <FormInput
+                  value={form.sku || ''}
+                  onChangeText={text => handleChange('sku', text)}
+                  placeholder="SKU (Optional)"
+                  theme="light"
+                  fontSize={16}
+                />
+                <Text style={{ color: '#ef4444', fontSize: 14, marginTop: 2 }}>{errors.sku || ' '}</Text>
               </View>
 
               {/* Expiry Date Row */}

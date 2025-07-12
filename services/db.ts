@@ -45,6 +45,8 @@ export const initDatabase = () => {
       updated_at TEXT,
       synced INTEGER DEFAULT 0,
       status TEXT,
+      barcode TEXT UNIQUE,
+      sku TEXT UNIQUE,
       sync_status_message TEXT
     );
 
