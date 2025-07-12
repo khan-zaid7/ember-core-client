@@ -34,6 +34,12 @@ const commonRoutes = [
     description: 'View your profile',
     icon: <MaterialIcons name="person" size={48} color="#f97316" />,
   },
+  {
+    path: '/conflicts',
+    title: 'Conflicts',
+    description: 'View all conflicts',
+    icon: <MaterialIcons name="person" size={48} color="#f97316" />,
+  },
 ];
 
 const roleActions: Record<string, Array<{ path: string; title: string; description: string; icon: React.ReactElement }>> = {

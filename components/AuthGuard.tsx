@@ -30,7 +30,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     '/map',
     '/maps',
     '/profile',
-    '/inbox'
+    '/inbox',
+    '/conflicts'
   ];
 
   // Define allowed routes for each role
