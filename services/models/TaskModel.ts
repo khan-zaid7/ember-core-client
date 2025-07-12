@@ -129,3 +129,10 @@ export const getCreatedTasks = (userId: string) => {
         [userId]
     );
 };
+
+export const getTaskById = (task_id: string) => {
+  return db.getFirstSync(
+    'SELECT * FROM tasks WHERE task_id = ?',
+    [task_id]
+  );
+};

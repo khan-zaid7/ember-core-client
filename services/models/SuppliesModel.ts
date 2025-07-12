@@ -77,3 +77,10 @@ export const getAllSupplies = (userId: string) => {
     [userId]
   );
 };
+
+export const getSupplyById = (supply_id: string) => {
+  return db.getFirstSync(
+    'SELECT * FROM supplies WHERE supply_id = ?',
+    [supply_id]
+  );
+};

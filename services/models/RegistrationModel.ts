@@ -82,3 +82,10 @@ export const getAllRegistrations = (userId: string) => {
     [userId]
   );
 };
+
+export const getRegistrationById = (registration_id: string) => {
+  return db.getFirstSync(
+    'SELECT * FROM registrations WHERE registration_id = ?',
+    [registration_id]
+  );
+};

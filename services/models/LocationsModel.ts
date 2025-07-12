@@ -115,3 +115,10 @@ export const getUserLocation = (userId: string) => {
     [userId]
   );
 };
+
+export const getLocationById = (location_id: string) => {
+  return db.getFirstSync(
+    'SELECT * FROM locations WHERE location_id = ?',
+    [location_id]
+  );
+};
