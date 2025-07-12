@@ -5,13 +5,14 @@ import { useAuth } from '@/context/AuthContext';
 
 
 export const useSyncTrigger = () => {
-    const { user } = useAuth();
+    const { user, loading } = useAuth();
     useEffect(() => {
+        if (loading || !user?.user_id) return;
         const unsubscribe = NetInfo.addEventListener(state => {
-            if (state.isConnected && state.isInternetReachable && user?.user_id) {
-                processSyncQueue(user.user_id); 
+            if (state.isConnected && state.isInternetReachable && user.user_id) {
+                processSyncQueue(user.user_id);
             }
         });
         return () => unsubscribe();
-    }, [user?.user_id]);
+    }, [user?.user_id, loading]);
 };

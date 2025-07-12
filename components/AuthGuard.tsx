@@ -3,10 +3,13 @@ import { useAuth } from '@/context/AuthContext';
 import { Redirect, usePathname } from 'expo-router';
 import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { useSyncTrigger } from '@/hooks/useSyncTrigger';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
+
+  useSyncTrigger();
 
   const publicRoutes = [
     '/',
