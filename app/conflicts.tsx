@@ -110,8 +110,8 @@ export default function ConflictsPage() {
         <TouchableOpacity
           style={{ flex: 1 }}
           onPress={() => {
-            // Navigate to conflict details - for now just show alert
-            console.log('Conflict details:', item);
+            // Navigate to resolve conflicts page
+            router.push(`/resolve-conflicts?conflictId=${item.id}`);
           }}
           activeOpacity={0.8}
         >
