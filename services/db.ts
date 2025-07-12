@@ -147,7 +147,6 @@ export const verifyTables = () => {
   const result = db.getAllSync<{ name: string }>(
     `SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;`
   );
-  console.log("🧩 Tables in DB:", result.map(row => row.name));
 };
 
 export const resetDatabase = () => {

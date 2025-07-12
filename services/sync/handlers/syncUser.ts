@@ -15,7 +15,6 @@ export const syncUser = async (user_id: string): Promise<{
       return { success: false };
     }
 
-    console.log('✅ User data being sent:', user);
     await sendUserToServer(user);
     return { success: true };
 

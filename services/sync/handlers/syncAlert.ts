@@ -15,7 +15,6 @@
 //       return { success: false };
 //     }
 
-//     console.log('✅ Alert data being sent:', alert);
 //     await sendAlertToServer(alert);
 //     return { success: true };
 

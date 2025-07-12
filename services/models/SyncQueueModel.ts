@@ -22,7 +22,7 @@ export const getAllSyncItems = (userId: string): SyncQueueItem[] => {
 
 export const getPendingSyncItems = (userId: string): SyncQueueItem[] => {
     const results = db.getAllSync<SyncQueueItem>(
-        `SELECT * FROM sync_queue WHERE (status IS NULL OR status = 'pending') AND created_by = ?`,
+        `SELECT * FROM sync_queue WHERE (status IS NULL OR status = 'pending' OR status = 'conflict' OR status = 'failed') AND created_by = ?`,
         [userId]
     );
     return results;

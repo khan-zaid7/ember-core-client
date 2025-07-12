@@ -14,7 +14,6 @@ export const syncNotification = async (notification_id: string): Promise<{
       return { success: false };
     }
 
-    console.log('✅ Notification data being sent:', notification);
     // Ensure entity_type and entity_id are present in the payload
     await sendNotificationToServer({
       ...notification,

@@ -15,7 +15,6 @@ export const syncLocation = async (location_id: string): Promise<{
       return { success: false };
     }
 
-    console.log('✅ Location data being sent:', location);
     await sendLocationToServer(location);
     return { success: true };
 

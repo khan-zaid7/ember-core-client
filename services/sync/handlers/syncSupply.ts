@@ -15,7 +15,6 @@ export const syncSupply = async (supply_id: string): Promise<{
       return { success: false };
     }
 
-    console.log('✅ Supply data being sent:', supply);
     await sendSupplyToServer(supply);
     return { success: true };
 

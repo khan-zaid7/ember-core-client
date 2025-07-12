@@ -15,15 +15,6 @@ export const getSessionFromDB = (): AuthUser | null => {
 };
 
 export const saveSessionToDB = (user: AuthUser) => {
-  console.log('📤 Attempting to save session with values:', {
-    key: SESSION_KEY,
-    user_id: user?.user_id,
-    name: user?.name,
-    email: user?.email,
-    phone_number: user?.phone_number,
-    role: user?.role,
-  });
-
   db.runSync(`DELETE FROM sessions WHERE key = ?`, [SESSION_KEY]);
 
   db.runSync(
@@ -44,7 +35,6 @@ export const saveSessionToDB = (user: AuthUser) => {
     [SESSION_KEY]
   );
 
-  console.log('✅ Confirmed saved session:', confirmed);
 };
 
 export const removeSessionFromDB = () => {

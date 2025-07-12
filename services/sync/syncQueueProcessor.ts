@@ -1,4 +1,4 @@
-import { getPendingSyncItems, markSyncSuccess, markSyncFailed, makeConflict  } from '@/services/models/SyncQueueModel';
+import { getPendingSyncItems, markSyncSuccess, markSyncFailed, makeConflict, getAllSyncItems  } from '@/services/models/SyncQueueModel';
 import { markEntitySynced } from '@/services/models/GenericModel';
 import { syncEntity } from './entityDispatchers';
 
@@ -14,7 +14,7 @@ export const processSyncQueue = async (userId: string) => {
     const sortedItems = pendingItems.sort((a, b) => {
       return priorityOrder.indexOf(a.entity_type) - priorityOrder.indexOf(b.entity_type);
     });
-
+    const temp = await getAllSyncItems(userId);
     for (const item of sortedItems) {
       try {
         const result = await syncEntity(item.entity_type, item.entity_id);

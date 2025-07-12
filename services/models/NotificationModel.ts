@@ -91,14 +91,14 @@ export const getNotificationsByUserId = (userId: string, includeArchived: boolea
 export const getUnreadNotificationsByUserId = (userId: string): NotificationModel[] => {
   try {
     return db.getAllSync<NotificationModel>(
-      'SELECT * FROM notifications WHERE user_id = ? AND read = 0 AND (archived IS NULL OR archived = 0) ORDER BY received_at DESC;',
+      'SELECT * FROM notifications WHERE user_id = ? AND read = 0 AND (archived IS NULL OR archived = 0) AND (sync_status_message IS NULL OR sync_status_message != "UI_SHOWN") ORDER BY received_at DESC;',
       [userId]
     );
   } catch (error) {
     console.error('Error fetching unread notifications by user ID:', error);
     // Fallback to getting all unread notifications if user_id column doesn't exist yet
     return db.getAllSync<NotificationModel>(
-      'SELECT * FROM notifications WHERE read = 0 AND (archived IS NULL OR archived = 0) ORDER BY received_at DESC;'
+      'SELECT * FROM notifications WHERE read = 0 AND (archived IS NULL OR archived = 0) AND (sync_status_message IS NULL OR sync_status_message != "UI_SHOWN") ORDER BY received_at DESC;'
     );
   }
 };
@@ -115,4 +115,32 @@ export const deleteNotification = (notification_id: string) => {
     'DELETE FROM notifications WHERE notification_id = ?;',
     [notification_id]
   );
+};
+
+// Check if a conflict notification for this entity already exists within the past day
+export const checkExistingConflictNotification = (
+  userId: string, 
+  entityType: string, 
+  entityId: string, 
+  conflictKey: string
+): boolean => {
+  try {
+    // Calculate a timestamp for 24 hours ago
+    const oneDayAgo = new Date();
+    oneDayAgo.setHours(oneDayAgo.getHours() - 24);
+    const oneDayAgoStr = oneDayAgo.toISOString();
+    
+    const results = db.getAllSync<NotificationModel>(
+      `SELECT * FROM notifications 
+       WHERE user_id = ? AND entity_type = ? AND entity_id = ? 
+       AND sync_status_message LIKE ? 
+       AND received_at > ?`,
+      [userId, entityType, entityId, `%UI_SHOWN_${conflictKey}%`, oneDayAgoStr]
+    );
+    
+    return results.length > 0;
+  } catch (error) {
+    console.error('Error checking for existing conflict notifications:', error);
+    return false; // Default to showing the notification if there's an error
+  }
 };

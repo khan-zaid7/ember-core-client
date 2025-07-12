@@ -15,7 +15,6 @@ export const syncRegistration = async (registration_id: string): Promise<{
       return { success: false };
     }
 
-    console.log('✅ Registration data being sent:', registration);
     await sendRegistrationToServer(registration);
     return { success: true };
 

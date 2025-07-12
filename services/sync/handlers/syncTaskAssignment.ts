@@ -15,7 +15,6 @@ export const syncTaskAssignment = async (assignment_id: string): Promise<{
       return { success: false };
     }
 
-    console.log('✅ Task Assignment data being sent:', assignment);
     await sendTaskAssignmentToServer(assignment);
     return { success: true };
 
