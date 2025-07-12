@@ -127,6 +127,7 @@ export const initDatabase = () => {
 
     CREATE TABLE IF NOT EXISTS notifications (
       notification_id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL,
       title TEXT,
       message TEXT NOT NULL,
       type TEXT,
@@ -136,6 +137,7 @@ export const initDatabase = () => {
       read INTEGER DEFAULT 0,
       synced INTEGER DEFAULT 0,
       sync_status_message TEXT,
+      archived INTEGER DEFAULT 0,
       updated_at TEXT
     );
   `);
@@ -159,6 +161,7 @@ export const resetDatabase = () => {
     'alerts',
     'sync_queue',
     'sessions',
+    'notifications',
   ];
 
   db.execSync(
