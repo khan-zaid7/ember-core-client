@@ -4,10 +4,10 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
 
 // Define valid tab keys
-export type TabKey = 'home' | 'records' | 'map' | 'settings';
+export type TabKey = 'home' | 'records' | 'inbox' | 'map' | 'settings';
 
 // Restrict to specific icons
-type AppIconName = 'home' | 'map' | 'settings' | 'insert-drive-file';
+type AppIconName = 'home' | 'map' | 'settings' | 'insert-drive-file' | 'inbox';
 
 interface TabType {
   key: TabKey;
@@ -24,6 +24,7 @@ interface FooterProps {
 const tabs: TabType[] = [
   { key: 'home', label: 'Dashboard', icon: 'home' },
   { key: 'records', label: 'Records', icon: 'insert-drive-file' },
+  { key: 'inbox', label: 'Inbox', icon: 'inbox' },
   { key: 'map', label: 'Map', icon: 'map' },
   { key: 'settings', label: 'Settings', icon: 'settings' },
 ];
@@ -87,6 +88,7 @@ export const useFooterNavigation = (
   React.useEffect(() => {
     if (pathname.startsWith('/home')) setActiveTab('home');
     else if (pathname.startsWith('/records')) setActiveTab('records');
+    else if (pathname.startsWith('/inbox')) setActiveTab('inbox');
     else if (pathname.startsWith('/map')) setActiveTab('map');
     else if (pathname.startsWith('/settings')) setActiveTab('settings');
     else setActiveTab(null); // Clear tab on unrelated pages
@@ -102,6 +104,9 @@ export const useFooterNavigation = (
           break;
         case 'records':
           router.push('/records');
+          break;
+        case 'inbox':
+          router.push('/inbox');
           break;
         case 'map':
           router.push('/map');

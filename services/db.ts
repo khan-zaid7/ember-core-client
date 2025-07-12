@@ -124,6 +124,20 @@ export const initDatabase = () => {
       phone_number TEXT,
       created_at TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      notification_id TEXT PRIMARY KEY NOT NULL,
+      title TEXT,
+      message TEXT NOT NULL,
+      type TEXT,
+      entity_type TEXT,
+      entity_id TEXT,
+      received_at TEXT,
+      read INTEGER DEFAULT 0,
+      synced INTEGER DEFAULT 0,
+      sync_status_message TEXT,
+      updated_at TEXT
+    );
   `);
 };
 

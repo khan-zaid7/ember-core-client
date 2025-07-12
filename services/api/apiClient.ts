@@ -107,3 +107,15 @@ export const sendAlertToServer = async (alert: any) => {
     throw error;
   }
 };
+// 🧩 NOTIFICATION
+export const sendNotificationToServer = async (notification: any) => {
+  try {
+    console.log("Payload going to /notification:", notification);
+    const response = await axiosInstance.post('/notification', notification);
+    console.log('✅ Notification synced:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Failed to sync notification:', error.response?.data || error.message);
+    throw error;
+  }
+};
