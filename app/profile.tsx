@@ -19,6 +19,9 @@ import { updateUserOffline, getUserById } from '@/services/models/UserModel';
 import { useAuth } from '@/context/AuthContext';
 import SettingsComponent from '../components/SettingsComponent';
 import { getUserLocation, upsertLocationOffline } from '@/services/models/LocationsModel';
+import { useNetwork } from '@/context/NetworkContext';
+import { getLastSyncStatus } from '@/services/models/SyncQueueModel';
+import dayjs from 'dayjs';
 
 
 export default function ProfileScreen() {
@@ -42,8 +45,10 @@ export default function ProfileScreen() {
   const [photo, setPhoto] = useState(fallbackUrl);
   const [userId, setUserId] = useState<string | null>(null);
   const { user } = useAuth();
+  const { isInternetReachable } = useNetwork();
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+  const [syncStatus, setSyncStatus] = useState<{ lastSync: string | null, isAllSynced: boolean }>({ lastSync: null, isAllSynced: true });
 
   const applyUserDetails = (details: any) => {
     setForm({
@@ -61,19 +66,19 @@ export default function ProfileScreen() {
         setUserId(user.user_id);
         const details = await getUserById(user.user_id);
         applyUserDetails(details);
+        // Fetch sync status
+        const status = getLastSyncStatus(user.user_id);
+        setSyncStatus(status);
       }
     };
     loadUserDetails();
   }, [user?.user_id]);
 
   useEffect(() => {
-    console.log('🧭 Params in effect:', params);
-
     const latNum = Number(params.latitude);
     const lngNum = Number(params.longitude);
 
     if (!isNaN(latNum) && !isNaN(lngNum)) {
-      console.log('📍 Setting location state from params:', latNum, lngNum);
       setLatitude(latNum);
       setLongitude(lngNum);
       setLocation(`${latNum},${lngNum}`);
@@ -85,12 +90,11 @@ export default function ProfileScreen() {
       if (user?.user_id) {
         const loc = await getUserLocation(user.user_id);
         if (loc && loc.latitude && loc.longitude) {
-          console.log('📍 Fetched location from storage:', loc.latitude, loc.longitude);
           setLatitude(loc.latitude);
           setLongitude(loc.longitude);
           setLocation(`${loc.latitude},${loc.longitude}`);
         } else {
-          console.log('⚠️ No location found for user in storage');
+          // Removed debug console.log('⚠️ No location found for user in storage');
         }
       }
     };
@@ -359,9 +363,13 @@ export default function ProfileScreen() {
           >
             <View>
               <Text style={{ fontSize: 16, fontWeight: '500', color: '#181411' }}>Sync Status</Text>
-              <Text style={{ fontSize: 14, color: '#8a7560' }}>Last Synced: 2024-07-26 10:30 AM</Text>
+              <Text style={{ fontSize: 14, color: '#8a7560' }}>
+                Last Synced: {syncStatus.lastSync ? dayjs(syncStatus.lastSync).format('YYYY-MM-DD hh:mm A') : 'Never'}
+              </Text>
             </View>
-            <Text style={{ fontSize: 16, color: '#181411' }}>Synced</Text>
+            <Text style={{ fontSize: 16, color: syncStatus.isAllSynced ? '#22c55e' : '#f97316', fontWeight: '600' }}>
+              {syncStatus.isAllSynced ? 'Synced' : 'Pending'}
+            </Text>
           </View>
 
           {/* Online Status */}
@@ -374,13 +382,18 @@ export default function ProfileScreen() {
             }}
           >
             <Text style={{ fontSize: 16, color: '#181411' }}>Online Status</Text>
-            <Switch
-              trackColor={{ false: '#f5f2f0', true: '#22c55e' }}
-              thumbColor="#ffffff"
-              ios_backgroundColor="#f5f2f0"
-              onValueChange={setOnlineStatus}
-              value={onlineStatus}
-            />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Switch
+                trackColor={{ false: '#f5f2f0', true: '#22c55e' }}
+                thumbColor="#ffffff"
+                ios_backgroundColor="#f5f2f0"
+                value={isInternetReachable}
+                disabled={true}
+              />
+              <Text style={{ fontSize: 16, color: isInternetReachable ? '#22c55e' : '#f97316', fontWeight: '600' }}>
+                {isInternetReachable ? 'Online' : 'Offline'}
+              </Text>
+            </View>
           </View>
 
           {/* Save Button */}

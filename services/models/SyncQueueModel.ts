@@ -118,3 +118,19 @@ export const getEntityDetails = (entityType: string, entityId: string): any => {
     return null;
   }
 };
+
+// Returns the last sync date/time and whether all items are synced for a user
+export const getLastSyncStatus = (userId: string): { lastSync: string | null, isAllSynced: boolean } => {
+  const lastSyncRow = db.getFirstSync<{ last_attempt_at: string | null }>(
+    `SELECT MAX(last_attempt_at) as last_attempt_at FROM sync_queue WHERE created_by = ?`,
+    [userId]
+  );
+  const unsyncedCount = db.getFirstSync<{ count: number }>(
+    `SELECT COUNT(*) as count FROM sync_queue WHERE (status IS NULL OR status != 'success') AND created_by = ?`,
+    [userId]
+  );
+  return {
+    lastSync: lastSyncRow?.last_attempt_at || null,
+    isAllSynced: (unsyncedCount?.count ?? 0) === 0,
+  };
+};

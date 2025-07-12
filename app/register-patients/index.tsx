@@ -11,6 +11,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 dayjs.extend(relativeTime);
 import SettingsComponent from '@/components/SettingsComponent';
+import { useAuth } from '@/context/AuthContext';
 
 type RegistrationItem = {
   id: string;
@@ -22,6 +23,7 @@ type RegistrationItem = {
 
 export default function UsersList() {
   const router = useRouter();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [genderFilter, setGenderFilter] = useState('');
   const [syncFilter, setSyncFilter] = useState('');
@@ -33,8 +35,9 @@ export default function UsersList() {
   // ✅ Refetch on focus
   useFocusEffect(
     useCallback(() => {
+      if (!user?.user_id) return;
       try {
-        const data = getAllRegistrations().map((item) => ({
+        const data = getAllRegistrations(user.user_id).map((item) => ({
           id: item.registration_id,
           name: item.person_name,
           status: item.synced === 1 ? 'Synced' : 'Unsynced',
@@ -45,7 +48,7 @@ export default function UsersList() {
       } catch (err) {
         console.error('Failed to load registrations:', err);
       }
-    }, [])
+    }, [user?.user_id])
   );
 
   const filteredUsers = registrations.filter(u =>

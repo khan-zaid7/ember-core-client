@@ -6,6 +6,7 @@ import { initDatabase, verifyTables } from '@/services/db';
 import { Stack } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Platform } from 'react-native';
+import { NetworkProvider } from '@/context/NetworkContext'; 
 
 export default function Layout() {
   // sync trigger 
@@ -21,17 +22,19 @@ export default function Layout() {
   }, []);
 
   return (
-    <AuthProvider>
-      <AuthGuard>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            animation: 'slide_from_right', 
-            gestureEnabled: true,
-            contentStyle: { backgroundColor: '#fcfaf8' },
-          }}
-        />
-      </AuthGuard>
-    </AuthProvider>
+    <NetworkProvider>
+      <AuthProvider>
+        <AuthGuard>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              animation: 'slide_from_right', 
+              gestureEnabled: true,
+              contentStyle: { backgroundColor: '#fcfaf8' },
+            }}
+          />
+        </AuthGuard>
+      </AuthProvider>
+    </NetworkProvider>
   );
 }

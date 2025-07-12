@@ -62,7 +62,7 @@ export const insertSupplyOffline = (form: {
   return supply_id;
 };
 
-export const getAllSupplies = () => {
+export const getAllSupplies = (userId: string) => {
   return db.getAllSync<{
     supply_id: string;
     item_name: string;
@@ -73,6 +73,7 @@ export const getAllSupplies = () => {
     synced: number;
     status: string;
   }>(
-    `SELECT supply_id, item_name, quantity, expiry_date, location_id, timestamp, synced, status FROM supplies ORDER BY timestamp DESC`
+    `SELECT supply_id, item_name, quantity, expiry_date, location_id, timestamp, synced, status FROM supplies WHERE user_id = ? ORDER BY timestamp DESC`,
+    [userId]
   );
-}; 
+};
