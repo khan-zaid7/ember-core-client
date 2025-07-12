@@ -9,6 +9,9 @@ export interface SyncQueueItem {
     retry_count : number;
     last_attempt_at: string | null;
     created_by: string;
+    conflict_field?: string;
+    latest_data?: string;
+    updated_at?: string;
 }
 
 
@@ -118,6 +121,14 @@ export const getEntityDetails = (entityType: string, entityId: string): any => {
     return null;
   }
 };
+
+export const getConflictItems = (userId: string): SyncQueueItem[] => {
+    const results = db.getAllSync<SyncQueueItem>(
+        `SELECT * FROM sync_queue WHERE status = 'conflict' AND created_by = ? ORDER BY last_attempt_at DESC`,
+        [userId]
+    );
+    return results;
+}
 
 // Returns the last sync date/time and whether all items are synced for a user
 export const getLastSyncStatus = (userId: string): { lastSync: string | null, isAllSynced: boolean } => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -6,103 +6,72 @@ import { useRouter } from 'expo-router';
 import { Footer, useFooterNavigation } from '@/components/Footer';
 import DashboardHeader from '@/components/Header';
 import SettingsComponent from '@/components/SettingsComponent';
+import { useAuth } from '@/context/AuthContext';
+import { getConflictItems, SyncQueueItem } from '@/services/models/SyncQueueModel';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
 dayjs.extend(relativeTime);
 
-const staticConflicts = [
-  {
-    id: 1,
-    type: 'Patient',
-    description: 'Duplicate patient registration for John Doe.',
-    date: '2025-07-10',
-    status: 'pending',
-    conflictField: 'email',
-  },
-  {
-    id: 2,
-    type: 'Medical Supply',
-    description: 'Conflicting supply count for Paracetamol.',
-    date: '2025-07-09',
-    status: 'pending',
-    conflictField: 'quantity',
-  },
-  {
-    id: 3,
-    type: 'Task',
-    description: 'Task assignment conflict for fieldworker.',
-    date: '2025-07-08',
-    status: 'resolved',
-    conflictField: 'assigned_to',
-  },
-  {
-    id: 4,
-    type: 'User',
-    description: 'User role mismatch detected.',
-    date: '2025-07-07',
-    status: 'pending',
-    conflictField: 'role',
-  },
-  {
-    id: 5,
-    type: 'Record',
-    description: 'Conflicting record update for patient Jane Smith.',
-    date: '2025-07-06',
-    status: 'pending',
-    conflictField: 'medical_history',
-  },
-  {
-    id: 6,
-    type: 'Location',
-    description: 'GPS coordinates mismatch for clinic location.',
-    date: '2025-07-05',
-    status: 'resolved',
-    conflictField: 'coordinates',
-  },
-  {
-    id: 7,
-    type: 'Alert',
-    description: 'Duplicate emergency alert for same incident.',
-    date: '2025-07-04',
-    status: 'pending',
-    conflictField: 'alert_id',
-  },
-  {
-    id: 8,
-    type: 'Task Assignment',
-    description: 'Multiple assignments for same volunteer.',
-    date: '2025-07-03',
-    status: 'resolved',
-    conflictField: 'volunteer_id',
-  },
-];
-
 export default function ConflictsPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [conflicts, setConflicts] = useState<SyncQueueItem[]>([]);
 
   const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
 
-  const statusOptions = ['', 'pending', 'resolved'];
-  const typeOptions = ['', 'Patient', 'Medical Supply', 'Task', 'User', 'Record', 'Location', 'Alert', 'Task Assignment'];
+  // Load conflicts when component mounts or user changes
+  useEffect(() => {
+    if (user?.user_id) {
+      const conflictItems = getConflictItems(user.user_id);
+      setConflicts(conflictItems);
+    }
+  }, [user]);
 
-  const filteredConflicts = staticConflicts.filter(conflict => {
+  const statusOptions = ['', 'pending', 'resolved'];
+  const typeOptions = ['', 'User', 'Registration', 'Supply', 'Task', 'Task Assignment', 'Location', 'Alert', 'Notification'];
+
+  // Helper function to capitalize entity type for display
+  const capitalizeEntityType = (entityType: string): string => {
+    switch (entityType.toLowerCase()) {
+      case 'user': return 'User';
+      case 'registration': return 'Registration';
+      case 'supply': return 'Supply';
+      case 'task': return 'Task';
+      case 'task_assignment': return 'Task Assignment';
+      case 'location': return 'Location';
+      case 'alert': return 'Alert';
+      case 'notification': return 'Notification';
+      default: return entityType;
+    }
+  };
+
+  // Helper function to capitalize status for display
+  const capitalizeStatus = (status: string): string => {
+    switch (status.toLowerCase()) {
+      case 'pending': return 'Pending';
+      case 'resolved': return 'Resolved';
+      default: return status;
+    }
+  };
+
+  const filteredConflicts = conflicts.filter(conflict => {
     const matchesSearch = !search || 
-      conflict.type.toLowerCase().includes(search.toLowerCase()) ||
-      conflict.description.toLowerCase().includes(search.toLowerCase()) ||
-      conflict.conflictField.toLowerCase().includes(search.toLowerCase());
+      conflict.entity_type.toLowerCase().includes(search.toLowerCase()) ||
+      conflict.entity_id.toLowerCase().includes(search.toLowerCase()) ||
+      (conflict.conflict_field && conflict.conflict_field.toLowerCase().includes(search.toLowerCase()));
     
     const matchesStatus = !statusFilter || conflict.status === statusFilter;
-    const matchesType = !typeFilter || conflict.type === typeFilter;
+    const matchesType = !typeFilter || capitalizeEntityType(conflict.entity_type) === typeFilter;
     
     return matchesSearch && matchesStatus && matchesType;
   });
 
-  const renderConflictItem = ({ item }: { item: typeof staticConflicts[0] }) => {
+  const renderConflictItem = ({ item }: { item: SyncQueueItem }) => {
     const isResolved = item.status === 'resolved';
     
     return (
@@ -111,20 +80,20 @@ export default function ConflictsPage() {
           style={{ flex: 1 }}
           onPress={() => {
             // Navigate to resolve conflicts page
-            router.push(`/resolve-conflicts?conflictId=${item.id}`);
+            router.push(`/resolve-conflicts?conflictId=${item.sync_id}`);
           }}
           activeOpacity={0.8}
         >
           <Text style={styles.conflictType}>
-            {item.type} Conflict
+            {capitalizeEntityType(item.entity_type)} Conflict
           </Text>
           
           <Text style={styles.conflictDescription} numberOfLines={2} ellipsizeMode="tail">
-            {item.description}
+            Sync conflict detected for {capitalizeEntityType(item.entity_type)} (ID: {item.entity_id})
           </Text>
           
           <Text style={styles.conflictDetails}>
-            Field: {item.conflictField} · {dayjs(item.date).fromNow()}
+            Field: {item.conflict_field || 'Unknown'} · {item.last_attempt_at ? dayjs(item.last_attempt_at).fromNow() : 'Unknown'}
           </Text>
         </TouchableOpacity>
 
@@ -173,7 +142,7 @@ export default function ConflictsPage() {
           }}
         >
           <Text style={styles.filterButtonText}>
-            Status: {statusFilter || 'All'}
+            Status: {statusFilter ? capitalizeStatus(statusFilter) : 'All'}
           </Text>
           <MaterialIcons name="arrow-drop-down" size={20} color="#1c130d" />
         </TouchableOpacity>
@@ -204,7 +173,7 @@ export default function ConflictsPage() {
       {/* Conflicts List */}
       <FlatList
         data={filteredConflicts}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.sync_id}
         renderItem={renderConflictItem}
         contentContainerStyle={{ paddingBottom: 32 }}
         ListEmptyComponent={
