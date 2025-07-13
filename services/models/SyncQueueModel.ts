@@ -11,6 +11,7 @@ export interface SyncQueueItem {
     created_by: string;
     conflict_field?: string;
     latest_data?: string;
+    allowed_strategies?: string;
     updated_at?: string;
 }
 
@@ -48,19 +49,27 @@ export const markSyncFailed = (sync_id: string) => {
 export const makeConflict = (
   sync_id: string,
   conflict_field: string,
-  latest_data: any
+  latest_data: any,
+  allowed_strategies?: string[]
 ): void => {
   try {
     const timestamp = dayjs().toISOString();
 
     db.runSync(
       `UPDATE sync_queue
-       SET status = ?, conflict_field = ?, latest_data = ?, updated_at = ?
+       SET status = ?, conflict_field = ?, latest_data = ?, allowed_strategies = ?, updated_at = ?
        WHERE sync_id = ?`,
-      ['conflict', conflict_field, JSON.stringify(latest_data), timestamp, sync_id]
+      [
+        'conflict', 
+        conflict_field, 
+        JSON.stringify(latest_data), 
+        allowed_strategies ? JSON.stringify(allowed_strategies) : null, 
+        timestamp, 
+        sync_id
+      ]
     );
 
-    console.log(`⚠️ Conflict recorded in sync_queue [${sync_id}] on ${conflict_field}`);
+    console.log(`⚠️ Conflict recorded in sync_queue [${sync_id}] on ${conflict_field}${allowed_strategies ? ` with strategies: ${allowed_strategies.join(', ')}` : ''}`);
   } catch (err) {
     console.error('❌ Failed to mark conflict in sync_queue:', err);
   }

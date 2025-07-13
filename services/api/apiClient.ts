@@ -188,3 +188,186 @@ export const sendNotificationToServer = async (notification: any) => {
     throw error;
   }
 };
+
+// ===============================
+// 🔄 CONFLICT RESOLUTION FUNCTIONS
+// ===============================
+
+interface ConflictResolutionRequest {
+  resolution_strategy: 'client_wins' | 'server_wins' | 'merge' | 'update_data';
+  clientData: any;
+}
+
+interface ConflictResolutionResponse {
+  success: boolean;
+  message: string;
+  status: 'resolved' | 'error';
+  resolvedData?: any;
+}
+
+// Generic conflict resolution function
+const resolveConflict = async (
+  entityType: string,
+  entityId: string,
+  entityIdField: string,
+  request: ConflictResolutionRequest
+): Promise<ConflictResolutionResponse> => {
+  try {
+    const payload = {
+      [entityIdField]: entityId,
+      resolution_strategy: request.resolution_strategy,
+      clientData: request.clientData
+    };
+
+    const response = await axiosInstance.post(`/${entityType}/resolve-conflict`, payload);
+    
+    console.log(`✅ ${entityType} conflict resolved:`, response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error(`❌ ${entityType} conflict resolution failed:`, error.response?.data || error);
+    
+    if (error.response?.data) {
+      return {
+        success: false,
+        message: error.response.data.message || `Failed to resolve ${entityType} conflict`,
+        status: 'error'
+      };
+    }
+    
+    throw error;
+  }
+};
+
+// 🧩 USER CONFLICT RESOLUTION
+export const resolveUserConflict = async (
+  userId: string,
+  strategy: 'client_wins' | 'server_wins' | 'merge' | 'update_data',
+  clientData: any
+): Promise<ConflictResolutionResponse> => {
+  return resolveConflict('user', userId, 'user_id', {
+    resolution_strategy: strategy,
+    clientData
+  });
+};
+
+// 🧩 REGISTRATION CONFLICT RESOLUTION
+export const resolveRegistrationConflict = async (
+  registrationId: string,
+  strategy: 'client_wins' | 'server_wins' | 'merge',
+  clientData: any
+): Promise<ConflictResolutionResponse> => {
+  return resolveConflict('registration', registrationId, 'registration_id', {
+    resolution_strategy: strategy,
+    clientData
+  });
+};
+
+// 🧩 SUPPLY CONFLICT RESOLUTION
+export const resolveSupplyConflict = async (
+  supplyId: string,
+  strategy: 'client_wins' | 'server_wins' | 'merge',
+  clientData: any
+): Promise<ConflictResolutionResponse> => {
+  return resolveConflict('supply', supplyId, 'supply_id', {
+    resolution_strategy: strategy,
+    clientData
+  });
+};
+
+// 🧩 TASK CONFLICT RESOLUTION
+export const resolveTaskConflict = async (
+  taskId: string,
+  strategy: 'client_wins' | 'server_wins' | 'merge',
+  clientData: any
+): Promise<ConflictResolutionResponse> => {
+  return resolveConflict('task', taskId, 'task_id', {
+    resolution_strategy: strategy,
+    clientData
+  });
+};
+
+// 🧩 TASK ASSIGNMENT CONFLICT RESOLUTION
+export const resolveTaskAssignmentConflict = async (
+  assignmentId: string,
+  strategy: 'client_wins' | 'server_wins' | 'merge',
+  clientData: any
+): Promise<ConflictResolutionResponse> => {
+  return resolveConflict('task-assignment', assignmentId, 'assignment_id', {
+    resolution_strategy: strategy,
+    clientData
+  });
+};
+
+// 🧩 LOCATION CONFLICT RESOLUTION
+export const resolveLocationConflict = async (
+  locationId: string,
+  strategy: 'client_wins' | 'server_wins' | 'merge',
+  clientData: any
+): Promise<ConflictResolutionResponse> => {
+  return resolveConflict('location', locationId, 'location_id', {
+    resolution_strategy: strategy,
+    clientData
+  });
+};
+
+// 🧩 ALERT CONFLICT RESOLUTION
+export const resolveAlertConflict = async (
+  alertId: string,
+  strategy: 'client_wins' | 'server_wins' | 'merge',
+  clientData: any
+): Promise<ConflictResolutionResponse> => {
+  return resolveConflict('alert', alertId, 'alert_id', {
+    resolution_strategy: strategy,
+    clientData
+  });
+};
+
+// 🧩 NOTIFICATION CONFLICT RESOLUTION
+export const resolveNotificationConflict = async (
+  notificationId: string,
+  strategy: 'client_wins' | 'server_wins' | 'merge',
+  clientData: any
+): Promise<ConflictResolutionResponse> => {
+  return resolveConflict('notification', notificationId, 'notification_id', {
+    resolution_strategy: strategy,
+    clientData
+  });
+};
+
+// 🔄 UNIFIED CONFLICT RESOLUTION FUNCTION
+// This function automatically determines the correct resolver based on entity type
+export const resolveEntityConflict = async (
+  entityType: string,
+  entityId: string,
+  strategy: 'client_wins' | 'server_wins' | 'merge' | 'update_data',
+  clientData: any
+): Promise<ConflictResolutionResponse> => {
+  switch (entityType.toLowerCase()) {
+    case 'user':
+      return resolveUserConflict(entityId, strategy, clientData);
+    
+    case 'registration':
+      return resolveRegistrationConflict(entityId, strategy as any, clientData);
+    
+    case 'supply':
+      return resolveSupplyConflict(entityId, strategy as any, clientData);
+    
+    case 'task':
+      return resolveTaskConflict(entityId, strategy as any, clientData);
+    
+    case 'task_assignment':
+      return resolveTaskAssignmentConflict(entityId, strategy as any, clientData);
+    
+    case 'location':
+      return resolveLocationConflict(entityId, strategy as any, clientData);
+    
+    case 'alert':
+      return resolveAlertConflict(entityId, strategy as any, clientData);
+    
+    case 'notification':
+      return resolveNotificationConflict(entityId, strategy as any, clientData);
+    
+    default:
+      throw new Error(`Unsupported entity type: ${entityType}`);
+  }
+};

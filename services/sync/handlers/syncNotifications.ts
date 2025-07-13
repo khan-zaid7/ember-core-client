@@ -6,6 +6,7 @@ export const syncNotification = async (notification_id: string): Promise<{
   status?: number;
   conflict_field?: string;
   latest_data?: any;
+  allowed_strategies?: string[];
 }> => {
   try {
     const notification = await getNotificationById(notification_id);
@@ -31,6 +32,7 @@ export const syncNotification = async (notification_id: string): Promise<{
         status: 409,
         conflict_field: error.response.data.conflict_field,
         latest_data: error.response.data.latest_data,
+        allowed_strategies: error.response.data.allowed_strategies,
       };
     }
 

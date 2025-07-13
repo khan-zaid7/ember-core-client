@@ -114,6 +114,7 @@ export const initDatabase = () => {
       created_by TEXT,
     conflict_field TEXT,     
       latest_data TEXT,
+      allowed_strategies TEXT,
       updated_at TEXT     
     );
 

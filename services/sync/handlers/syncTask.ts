@@ -7,6 +7,7 @@ export const syncTask = async (task_id: string): Promise<{
   status?: number;
   conflict_field?: string;
   latest_data?: any;
+  allowed_strategies?: string[];
 }> => {
   try {
     const task = getTaskById(task_id);
@@ -26,6 +27,7 @@ export const syncTask = async (task_id: string): Promise<{
         status: 409,
         conflict_field: error.response.data.conflict_field,
         latest_data: error.response.data.latest_data,
+        allowed_strategies: error.response.data.allowed_strategies,
       };
     }
 

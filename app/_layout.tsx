@@ -15,7 +15,7 @@ export default function Layout() {
     if (Platform.OS !== 'web') {
       initDatabase();
       verifyTables();
-      
+      // resetDatabase()      
     }
   }, []);
 

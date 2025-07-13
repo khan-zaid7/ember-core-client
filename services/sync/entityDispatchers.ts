@@ -16,6 +16,7 @@ export const syncEntity = async (
     status?: number;
     conflict_field?: string;
     latest_data?: any;
+    allowed_strategies?: string[];
 }> => {
     switch (entity_type) {
         case 'user':

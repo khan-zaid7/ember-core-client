@@ -23,7 +23,7 @@ export const processSyncQueue = async (userId: string) => {
           await markSyncSuccess(item.sync_id);
           await markEntitySynced(item.entity_type, item.entity_id);
         } else if (result.status === 409 && result.conflict_field && result.latest_data) {
-          await makeConflict(item.sync_id, result.conflict_field, result.latest_data);
+          await makeConflict(item.sync_id, result.conflict_field, result.latest_data, result.allowed_strategies);
         } else {
           await markSyncFailed(item.sync_id);
         }

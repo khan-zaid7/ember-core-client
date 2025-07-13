@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -7,53 +7,250 @@ import { Footer, useFooterNavigation } from '@/components/Footer';
 import DashboardHeader from '@/components/Header';
 import SettingsComponent from '@/components/SettingsComponent';
 import { useAuth } from '@/context/AuthContext';
-import { getConflictWithEntityDetails } from '@/services/models/SyncQueueModel';
+import { getConflictWithEntityDetails, markSyncSuccess } from '@/services/models/SyncQueueModel';
+import { resolveEntityConflict } from '@/services/api/apiClient';
 
-// Interface for conflict data structure
-interface ConflictData {
-  entityType: string;
-  entityId: string;
-  conflictField: string;
-  localData: Record<string, any>;
-  serverData: Record<string, any>;
-}
+// Components
+import { 
+  EntityInfo, 
+  DataComparisonTable, 
+  StandardResolutionOptions, 
+  UniqueConstraintForm, 
+  ActionButtons,
+  styles as conflictStyles,
+  ConflictData,
+  ResolveStatus
+} from '@/components/resolve-conflicts';
+
+// Utilities
+import { 
+  getDisplayFields, 
+  getUniqueConstraintFields, 
+  getConflictFields,
+  validateFieldValue, 
+  formatFieldName 
+} from '@/utils';
 
 export default function ResolveConflictsPage() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuth();
+  const scrollViewRef = useRef<ScrollView>(null);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [selectedResolution, setSelectedResolution] = useState<'local' | 'server' | null>(null);
-  const [conflictData, setConflictData] = useState<any>(null);
-  const [editableValue, setEditableValue] = useState<string>('');
-  const [isEditing, setIsEditing] = useState(false);
+  const [conflictData, setConflictData] = useState<ConflictData | null>(null);
+  const [editableValues, setEditableValues] = useState<Record<string, string>>({});
+  const [isResolving, setIsResolving] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [allowedStrategies, setAllowedStrategies] = useState<string[]>([]);
 
   const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
 
-  // Check if this is a unique constraint conflict
-  // For testing purposes, let's assume email conflicts are unique constraint conflicts
-  const isUniqueConstraintConflict = conflictData?.conflict?.conflict_field === 'email' || 
-                                   conflictData?.conflict?.status === 'unique_constraint_violation';
+  // Get unique constraint fields and conflict data
+  const uniqueConstraintFields = getUniqueConstraintFields(
+    conflictData?.conflict?.conflict_field || '', 
+    conflictData?.conflict?.status || ''
+  );
+  const isUniqueConstraintConflict = uniqueConstraintFields.length > 0;
+  const isUpdateDataAllowed = allowedStrategies.includes('update_data');
+  const isClientWinsAllowed = allowedStrategies.includes('client_wins');
+  const shouldShowUniqueConstraintForm = isUniqueConstraintConflict && (isUpdateDataAllowed || isClientWinsAllowed);
 
+  // Fetch conflict data & initialize values
   useEffect(() => {
-    const syncId = params.syncId as string;
-    if (syncId && user?.user_id) {
-      const data = getConflictWithEntityDetails(user.user_id, syncId);
-      setConflictData(data);
-      console.log(data);
-      
-      // Initialize editable value with local data for the conflicting field
-      if (data?.conflict?.conflict_field && data?.clientData) {
-        setEditableValue(String(data.clientData[data.conflict.conflict_field] || ''));
+    async function fetchData() {
+      setFetching(true);
+      let rawData: any = null;
+      const syncId = typeof params.syncId === "string" ? params.syncId : undefined;
+      if (syncId && user?.user_id) {
+        rawData = await getConflictWithEntityDetails(user.user_id, syncId);
+      } else if (params.conflictData) {
+        try {
+          rawData = JSON.parse(params.conflictData as string);
+        } catch (e) {
+          Alert.alert('Error', 'Failed to load conflict data from parameters.');
+        }
+      }
+      if (rawData && rawData.conflict) {
+        setConflictData({
+          entityType: rawData.conflict.entity_type ?? "",
+          entityId: rawData.conflict.entity_id ?? "",
+          conflictField: rawData.conflict.conflict_field ?? "",
+          localData: rawData.clientData ?? {},
+          serverData: rawData.serverData ?? {},
+          conflict: rawData.conflict,
+          clientData: rawData.clientData ?? {},
+        });
+        
+        // Parse allowed strategies from the conflict data
+        try {
+          const strategiesData = rawData.conflict.allowed_strategies;
+          if (strategiesData) {
+            const strategies = typeof strategiesData === 'string' 
+              ? JSON.parse(strategiesData) 
+              : strategiesData;
+            setAllowedStrategies(Array.isArray(strategies) ? strategies : []);
+          } else {
+            // Fallback to default strategies if none specified
+            setAllowedStrategies(['client_wins', 'server_wins', 'merge', 'update_data']);
+          }
+        } catch (e) {
+          console.warn('Failed to parse allowed strategies, using defaults:', e);
+          setAllowedStrategies(['client_wins', 'server_wins', 'merge', 'update_data']);
+        }
+        
+        // Initialize editable values for unique constraint fields
+        if (rawData.conflict.conflict_field && rawData.clientData) {
+          const fields = getUniqueConstraintFields(
+            rawData.conflict.conflict_field,
+            rawData.conflict.status || ''
+          );
+          const initialValues: Record<string, string> = {};
+          fields.forEach((field: string) => {
+            initialValues[field] = String(rawData.clientData[field] || '');
+          });
+          setEditableValues(initialValues);
+        }
+      } else {
+        setConflictData(null);
+        setAllowedStrategies([]);
+      }
+      setFetching(false);
+    }
+    fetchData();
+  }, [params.syncId, user, params.conflictData]);
+
+  // Reset selected resolution if it's not in allowed strategies
+  useEffect(() => {
+    if (selectedResolution && allowedStrategies.length > 0) {
+      const strategy = selectedResolution === 'local' ? 'client_wins' : 'server_wins';
+      if (!allowedStrategies.includes(strategy)) {
+        setSelectedResolution(null);
       }
     }
-  }, [params.syncId, user]);
+  }, [allowedStrategies, selectedResolution]);
 
-  // Get conflict data from params - keep for backward compatibility
-  const legacyConflictData = params.conflictData ? JSON.parse(params.conflictData as string) as ConflictData : null;
+  // Get display fields and conflict fields for UI
+  const allFields = getDisplayFields(
+    conflictData?.conflict?.entity_type || '',
+    conflictData?.clientData || {},
+    conflictData?.serverData || {}
+  );
+  
+  const conflictFields = getConflictFields(
+    conflictData?.conflict?.conflict_field || '',
+    uniqueConstraintFields
+  );
 
-  // If no conflict data is available, show error message
-  if (!conflictData && !legacyConflictData) {
+  // Handle normal resolution
+  const handleConfirmResolution = async () => {
+    if (!selectedResolution || !conflictData) {
+      Alert.alert('Error', 'Please select a resolution method');
+      return;
+    }
+    
+    // Validate that the selected strategy is allowed
+    const strategy = selectedResolution === 'local' ? 'client_wins' : 'server_wins';
+    if (!allowedStrategies.includes(strategy)) {
+      Alert.alert('Error', `The "${strategy}" strategy is not allowed for this conflict`);
+      return;
+    }
+    
+    setIsResolving(true);
+    try {
+      const entityType = conflictData.conflict?.entity_type ?? "";
+      const entityId = conflictData.conflict?.entity_id ?? "";
+      const clientData = conflictData.clientData;
+
+      const response: { success: boolean; status?: ResolveStatus; message?: string } = await resolveEntityConflict(entityType, entityId, strategy, clientData);
+      if (response.success) {
+        markSyncSuccess(conflictData.conflict?.sync_id ?? "");
+        Alert.alert(
+          'Success',
+          `The conflict has been resolved using ${selectedResolution === 'local' ? 'your local data' : 'server data'}.`,
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      } else if (response.status === 'already_resolved') {
+        Alert.alert(
+          'Conflict Already Resolved',
+          'This conflict was already resolved elsewhere. Please refresh your data.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      } else {
+        Alert.alert('Error', response.message || 'Failed to resolve conflict');
+      }
+    } catch (error) {
+      console.error('❌ Conflict resolution failed:', error);
+      Alert.alert('Error', 'Failed to resolve conflict. Please try again.');
+    } finally {
+      setIsResolving(false);
+    }
+  };
+
+  // Handle unique constraint resolution
+  const handleUniqueConstraintResolution = async () => {
+    if (!conflictData) {
+      Alert.alert('Error', 'No conflict data available');
+      return;
+    }
+    
+    // Determine which strategy to use for unique constraint resolution
+    const strategy = isUpdateDataAllowed ? 'update_data' : 'client_wins';
+    
+    // Validate that the strategy is allowed
+    if (!allowedStrategies.includes(strategy)) {
+      Alert.alert('Error', `The "${strategy}" strategy is not allowed for this conflict`);
+      return;
+    }
+    
+    // Validate all required fields
+    for (const field of uniqueConstraintFields) {
+      const value = editableValues[field]?.trim();
+      const error = validateFieldValue(field, value || '');
+      if (error) {
+        Alert.alert('Error', error);
+        return;
+      }
+    }
+    setIsResolving(true);
+    try {
+      const entityType = conflictData.conflict?.entity_type ?? "";
+      const entityId = conflictData.conflict?.entity_id ?? "";
+      const updatedClientData = {
+        ...conflictData.clientData,
+        ...editableValues,
+      };
+
+      const response: { success: boolean; status?: ResolveStatus; message?: string } = await resolveEntityConflict(entityType, entityId, strategy, updatedClientData);
+      if (response.success) {
+        markSyncSuccess(conflictData.conflict?.sync_id ?? "");
+        const changedFields = uniqueConstraintFields.map(field =>
+          `${formatFieldName(field)}: ${editableValues[field]}`
+        ).join(', ');
+        Alert.alert(
+          'Success',
+          `The unique constraint conflict has been resolved with new values: ${changedFields}`,
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      } else if (response.status === 'already_resolved') {
+        Alert.alert(
+          'Conflict Already Resolved',
+          'This conflict was already resolved elsewhere. Please refresh your data.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      } else {
+        Alert.alert('Error', response.message || 'Failed to resolve unique constraint conflict');
+      }
+    } catch (error) {
+      console.error('❌ Unique constraint resolution failed:', error);
+      Alert.alert('Error', 'Failed to resolve unique constraint conflict. Please try again.');
+    } finally {
+      setIsResolving(false);
+    }
+  };
+
+  // Error state (if conflictData never loads)
+  if (!fetching && !conflictData) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
         <DashboardHeader
@@ -62,14 +259,14 @@ export default function ResolveConflictsPage() {
           onSettingsPress={() => setSettingsModalVisible(true)}
           onBackPress={() => router.back()}
         />
-        <View style={styles.errorContainer}>
+        <View style={conflictStyles.errorContainer}>
           <MaterialIcons name="error" size={48} color="#f97316" />
-          <Text style={styles.errorTitle}>No Conflict Data Available</Text>
-          <Text style={styles.errorMessage}>
+          <Text style={conflictStyles.errorTitle}>No Conflict Data Available</Text>
+          <Text style={conflictStyles.errorMessage}>
             The conflict data could not be loaded. Please try again or contact support.
           </Text>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backButtonText}>Go Back</Text>
+          <TouchableOpacity style={conflictStyles.backButton} onPress={() => router.back()}>
+            <Text style={conflictStyles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
         <Footer activeTab={activeTab} onTabPress={handleTabPress} />
@@ -78,35 +275,14 @@ export default function ResolveConflictsPage() {
     );
   }
 
-  const handleConfirmResolution = () => {
-    if (!selectedResolution) {
-      Alert.alert('Error', 'Please select a resolution method');
-      return;
-    }
-
-    const resolvedData = selectedResolution === 'local' ? conflictData?.clientData : conflictData?.serverData;
-    
-    Alert.alert(
-      'Conflict Resolved',
-      `The conflict has been resolved using ${selectedResolution === 'local' ? 'your local data' : 'server data'}.`,
-      [{ text: 'OK', onPress: () => router.back() }]
+  if (fetching) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#f97316" />
+        <Text style={{ marginTop: 16, color: '#6b7280' }}>Loading conflict data...</Text>
+      </SafeAreaView>
     );
-  };
-
-  const handleUniqueConstraintResolution = () => {
-    if (!editableValue.trim()) {
-      Alert.alert('Error', 'Please enter a valid value');
-      return;
-    }
-
-    // Here you would make the API call to resolve the unique constraint conflict
-    // For now, we'll just show a success message
-    Alert.alert(
-      'Conflict Resolved',
-      `The unique constraint conflict has been resolved with the new value: ${editableValue}`,
-      [{ text: 'OK', onPress: () => router.back() }]
-    );
-  };
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -117,385 +293,83 @@ export default function ResolveConflictsPage() {
         onBackPress={() => router.back()}
       />
 
-      <ScrollView style={styles.container}>
-        {/* Entity Info */}
-        <View style={styles.entityInfo}>
-          <MaterialIcons name="warning" size={24} color="#f97316" />
-          <View style={styles.entityDetails}>
-            <Text style={styles.entityType}>
-              {conflictData?.conflict?.entity_type?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Unknown'} Conflict
-            </Text>
-            <Text style={styles.entityId}>ID: {conflictData?.conflict?.entity_id || 'Unknown'}</Text>
-            <Text style={styles.conflictField}>Field: {conflictData?.conflict?.conflict_field || 'Unknown'}</Text>
-          </View>
-        </View>
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView 
+            ref={scrollViewRef}
+            style={conflictStyles.container}
+            contentContainerStyle={conflictStyles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={true}
+          >
+            <EntityInfo
+              entityType={conflictData?.conflict?.entity_type || 'Unknown'}
+              entityId={conflictData?.conflict?.entity_id || 'Unknown'}
+              conflictFields={conflictFields}
+            />
 
-        {/* Data Comparison */}
-        <View style={styles.comparisonContainer}>
-          <Text style={styles.sectionTitle}>Conflicting Fields</Text>
-          
-          {/* Table Header */}
-          <View style={styles.tableHeader}>
-            <Text style={styles.tableHeaderText}>Field</Text>
-            <Text style={styles.tableHeaderText}>Your Data{'\n'}(Local)</Text>
-            <Text style={styles.tableHeaderText}>Server Data</Text>
-          </View>
+            <DataComparisonTable
+              allFields={allFields}
+              clientData={conflictData?.clientData || {}}
+              serverData={conflictData?.serverData || {}}
+              conflictFields={conflictFields}
+            />
 
-          {/* Table Rows */}
-          {Object.keys(conflictData?.clientData || {}).map((field) => {
-            const localValue = conflictData?.clientData?.[field];
-            const serverValue = conflictData?.serverData?.[field];
-            const isConflictingField = field === conflictData?.conflict?.conflict_field;
+            <View style={conflictStyles.resolutionContainer}>
+              <Text style={conflictStyles.sectionTitle}>Choose Resolution</Text>
 
-            // Skip fields that don't exist in server data or are null/undefined in both
-            if (serverValue === undefined || (localValue == null && serverValue == null)) return null;
-
-            return (
-              <View key={field} style={[styles.tableRow, isConflictingField && styles.conflictRow]}>
-                <Text style={[styles.fieldCell, isConflictingField && styles.conflictText]}>
-                  {field.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
-                </Text>
-                <Text style={[styles.dataCell, isConflictingField && styles.conflictText]}>
-                  {String(localValue || 'N/A')}
-                </Text>
-                <Text style={[styles.dataCell, isConflictingField && styles.conflictText]}>
-                  {String(serverValue || 'N/A')}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Resolution Options */}
-        <View style={styles.resolutionContainer}>
-          <Text style={styles.sectionTitle}>Choose Resolution</Text>
-
-          {isUniqueConstraintConflict ? (
-            // Unique constraint conflict - show editable form
-            <View>
-              <Text style={styles.uniqueConstraintText}>
-                This field has a unique constraint violation. Please enter a new unique value:
-              </Text>
-              
-              <View style={styles.editableContainer}>
-                <Text style={styles.editableLabel}>
-                  New {conflictData?.conflict?.conflict_field?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}:
-                </Text>
-                <TextInput
-                  style={styles.editableInput}
-                  value={editableValue}
-                  onChangeText={setEditableValue}
-                  placeholder={`Enter new ${conflictData?.conflict?.conflict_field?.replace(/_/g, ' ')}`}
-                  placeholderTextColor="#9ca3af"
+              {shouldShowUniqueConstraintForm ? (
+                <UniqueConstraintForm
+                  uniqueConstraintFields={uniqueConstraintFields}
+                  editableValues={editableValues}
+                  onUpdateValue={(field: string, value: string) => 
+                    setEditableValues(prev => ({ ...prev, [field]: value }))
+                  }
+                  scrollViewRef={scrollViewRef}
                 />
-              </View>
+              ) : (
+                <StandardResolutionOptions
+                  selectedResolution={selectedResolution}
+                  onSelectResolution={setSelectedResolution}
+                  allowedStrategies={allowedStrategies}
+                />
+              )}
+              
+              {/* Show message if unique constraint conflict but neither update_data nor client_wins are allowed */}
+              {isUniqueConstraintConflict && !isUpdateDataAllowed && !isClientWinsAllowed && (
+                <View style={conflictStyles.warningContainer}>
+                  <MaterialIcons name="warning" size={24} color="#f59e0b" />
+                  <Text style={conflictStyles.warningText}>
+                    This is a unique constraint conflict, but neither "Update Data" nor "Use My Data" strategies are allowed. 
+                    Please choose from the available standard resolution options.
+                  </Text>
+                </View>
+              )}
             </View>
-          ) : (
-            // Normal conflict - show resolution buttons
-            <View>
-              <TouchableOpacity
-                style={[styles.resolutionOption, selectedResolution === 'local' && styles.selectedOption]}
-                onPress={() => setSelectedResolution('local')}
-              >
-                <MaterialIcons name="arrow-forward" size={24} color={selectedResolution === 'local' ? '#f97316' : '#6b7280'} />
-                <Text style={[styles.optionTitle, selectedResolution === 'local' && styles.selectedOptionTitle]}>
-                  Use My Data
-                </Text>
-              </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.resolutionOption, selectedResolution === 'server' && styles.selectedOption]}
-                onPress={() => setSelectedResolution('server')}
-              >
-                <MaterialIcons name="arrow-back" size={24} color={selectedResolution === 'server' ? '#f97316' : '#6b7280'} />
-                <Text style={[styles.optionTitle, selectedResolution === 'server' && styles.selectedOptionTitle]}>
-                  Use Server Data
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-
-          {isUniqueConstraintConflict ? (
-            <TouchableOpacity
-              style={[styles.confirmButton, !editableValue.trim() && styles.disabledButton]}
-              onPress={() => handleUniqueConstraintResolution()}
-              disabled={!editableValue.trim()}
-            >
-              <Text style={styles.confirmButtonText}>Send</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.confirmButton, !selectedResolution && styles.disabledButton]}
-              onPress={handleConfirmResolution}
-              disabled={!selectedResolution}
-            >
-              <Text style={styles.confirmButtonText}>Confirm</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </ScrollView>
+            <ActionButtons
+              onCancel={() => router.back()}
+              onConfirm={shouldShowUniqueConstraintForm ? handleUniqueConstraintResolution : handleConfirmResolution}
+              isResolving={isResolving}
+              isUniqueConstraint={shouldShowUniqueConstraintForm}
+              isDisabled={
+                shouldShowUniqueConstraintForm
+                  ? uniqueConstraintFields.some(field => !editableValues[field]?.trim()) || isResolving
+                  : !selectedResolution || isResolving || 
+                    (selectedResolution === 'local' && !allowedStrategies.includes('client_wins')) ||
+                    (selectedResolution === 'server' && !allowedStrategies.includes('server_wins'))
+              }
+            />
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
 
       <Footer activeTab={activeTab} onTabPress={handleTabPress} />
       <SettingsComponent visible={settingsModalVisible} onClose={() => setSettingsModalVisible(false)} />
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  errorTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#f97316',
-    marginTop: 16,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  errorMessage: {
-    fontSize: 16,
-    color: '#9e6b47',
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 24,
-  },
-  backButton: {
-    backgroundColor: '#f97316',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  entityInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#f4ece6',
-  },
-  entityDetails: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  entityType: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1c130d',
-  },
-  entityId: {
-    fontSize: 14,
-    color: '#81736a',
-    marginTop: 2,
-  },
-  conflictField: {
-    fontSize: 14,
-    color: '#f97316',
-    marginTop: 2,
-  },
-  comparisonContainer: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1c130d',
-    marginBottom: 16,
-  },
-  conflictItem: {
-    backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#f4ece6',
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 2,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-  },
-  tableHeaderText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#495057',
-    textAlign: 'center',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-    alignItems: 'center',
-  },
-  conflictRow: {
-    backgroundColor: '#fef2f2',
-    borderBottomColor: '#fecaca',
-  },
-  fieldCell: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    textAlign: 'left',
-    paddingRight: 8,
-  },
-  dataCell: {
-    flex: 1,
-    fontSize: 14,
-    color: '#374151',
-    textAlign: 'center',
-    paddingHorizontal: 4,
-  },
-  conflictText: {
-    color: '#f97316',
-    fontWeight: '600',
-  },
-  fieldName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1c130d',
-    marginBottom: 8,
-  },
-  dataRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  dataLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#f97316',
-    width: 100,
-  },
-  localValue: {
-    fontSize: 14,
-    color: '#161412',
-    fontWeight: '400',
-    flex: 1,
-  },
-  serverValue: {
-    fontSize: 14,
-    color: '#161412',
-    fontWeight: '400',
-    flex: 1,
-  },
-  resolutionContainer: {
-    marginBottom: 24,
-  },
-  resolutionOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f4f2f1',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#6b7280',
-  },
-  selectedOption: {
-    backgroundColor: '#ffffff',
-    borderColor: '#f97316',
-  },
-  optionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1c130d',
-    marginLeft: 12,
-  },
-  selectedOptionTitle: {
-    color: '#f97316',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 20,
-    marginBottom: 40,
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: '#f4f2f1',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#6b7280',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6b7280',
-  },
-  confirmButton: {
-    flex: 1,
-    backgroundColor: '#f97316',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  disabledButton: {
-    backgroundColor: '#9ca3af',
-  },
-  confirmButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  uniqueConstraintText: {
-    fontSize: 16,
-    color: '#f97316',
-    fontWeight: '600',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  editableContainer: {
-    backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#f4ece6',
-  },
-  editableLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1c130d',
-    marginBottom: 8,
-  },
-  editableInput: {
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#374151',
-  },
-});
