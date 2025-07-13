@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Footer, useFooterNavigation } from '@/components/Footer';
 import DashboardHeader from '@/components/Header';
 import SettingsComponent from '@/components/SettingsComponent';
+import { useAuth } from '@/context/AuthContext';
+import { getConflictWithEntityDetails } from '@/services/models/SyncQueueModel';
 
 // Interface for conflict data structure
 interface ConflictData {
@@ -19,16 +21,39 @@ interface ConflictData {
 export default function ResolveConflictsPage() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { user } = useAuth();
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [selectedResolution, setSelectedResolution] = useState<'local' | 'server' | null>(null);
+  const [conflictData, setConflictData] = useState<any>(null);
+  const [editableValue, setEditableValue] = useState<string>('');
+  const [isEditing, setIsEditing] = useState(false);
 
   const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
 
-  // Get conflict data from params
-  const conflictData = params.conflictData ? JSON.parse(params.conflictData as string) as ConflictData : null;
+  // Check if this is a unique constraint conflict
+  // For testing purposes, let's assume email conflicts are unique constraint conflicts
+  const isUniqueConstraintConflict = conflictData?.conflict?.conflict_field === 'email' || 
+                                   conflictData?.conflict?.status === 'unique_constraint_violation';
+
+  useEffect(() => {
+    const syncId = params.syncId as string;
+    if (syncId && user?.user_id) {
+      const data = getConflictWithEntityDetails(user.user_id, syncId);
+      setConflictData(data);
+      console.log(data);
+      
+      // Initialize editable value with local data for the conflicting field
+      if (data?.conflict?.conflict_field && data?.clientData) {
+        setEditableValue(String(data.clientData[data.conflict.conflict_field] || ''));
+      }
+    }
+  }, [params.syncId, user]);
+
+  // Get conflict data from params - keep for backward compatibility
+  const legacyConflictData = params.conflictData ? JSON.parse(params.conflictData as string) as ConflictData : null;
 
   // If no conflict data is available, show error message
-  if (!conflictData) {
+  if (!conflictData && !legacyConflictData) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
         <DashboardHeader
@@ -59,11 +84,26 @@ export default function ResolveConflictsPage() {
       return;
     }
 
-    const resolvedData = selectedResolution === 'local' ? conflictData.localData : conflictData.serverData;
+    const resolvedData = selectedResolution === 'local' ? conflictData?.clientData : conflictData?.serverData;
     
     Alert.alert(
       'Conflict Resolved',
       `The conflict has been resolved using ${selectedResolution === 'local' ? 'your local data' : 'server data'}.`,
+      [{ text: 'OK', onPress: () => router.back() }]
+    );
+  };
+
+  const handleUniqueConstraintResolution = () => {
+    if (!editableValue.trim()) {
+      Alert.alert('Error', 'Please enter a valid value');
+      return;
+    }
+
+    // Here you would make the API call to resolve the unique constraint conflict
+    // For now, we'll just show a success message
+    Alert.alert(
+      'Conflict Resolved',
+      `The unique constraint conflict has been resolved with the new value: ${editableValue}`,
       [{ text: 'OK', onPress: () => router.back() }]
     );
   };
@@ -83,35 +123,44 @@ export default function ResolveConflictsPage() {
           <MaterialIcons name="warning" size={24} color="#f97316" />
           <View style={styles.entityDetails}>
             <Text style={styles.entityType}>
-              {conflictData.entityType.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} Conflict
+              {conflictData?.conflict?.entity_type?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Unknown'} Conflict
             </Text>
-            <Text style={styles.entityId}>ID: {conflictData.entityId}</Text>
-            <Text style={styles.conflictField}>Field: {conflictData.conflictField}</Text>
+            <Text style={styles.entityId}>ID: {conflictData?.conflict?.entity_id || 'Unknown'}</Text>
+            <Text style={styles.conflictField}>Field: {conflictData?.conflict?.conflict_field || 'Unknown'}</Text>
           </View>
         </View>
 
         {/* Data Comparison */}
         <View style={styles.comparisonContainer}>
-          <Text style={styles.sectionTitle}>Conflicting Data</Text>
+          <Text style={styles.sectionTitle}>Conflicting Fields</Text>
           
-          {Object.keys(conflictData.localData).map((field) => {
-            const localValue = conflictData.localData[field];
-            const serverValue = conflictData.serverData[field];
-            const hasConflict = localValue !== serverValue;
+          {/* Table Header */}
+          <View style={styles.tableHeader}>
+            <Text style={styles.tableHeaderText}>Field</Text>
+            <Text style={styles.tableHeaderText}>Your Data{'\n'}(Local)</Text>
+            <Text style={styles.tableHeaderText}>Server Data</Text>
+          </View>
 
-            if (!hasConflict) return null;
+          {/* Table Rows */}
+          {Object.keys(conflictData?.clientData || {}).map((field) => {
+            const localValue = conflictData?.clientData?.[field];
+            const serverValue = conflictData?.serverData?.[field];
+            const isConflictingField = field === conflictData?.conflict?.conflict_field;
+
+            // Skip fields that don't exist in server data or are null/undefined in both
+            if (serverValue === undefined || (localValue == null && serverValue == null)) return null;
 
             return (
-              <View key={field} style={styles.conflictItem}>
-                <Text style={styles.fieldName}>{field.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</Text>
-                <View style={styles.dataRow}>
-                  <Text style={styles.dataLabel}>Your Data:</Text>
-                  <Text style={styles.localValue}>{String(localValue)}</Text>
-                </View>
-                <View style={styles.dataRow}>
-                  <Text style={styles.dataLabel}>Server Data:</Text>
-                  <Text style={styles.serverValue}>{String(serverValue)}</Text>
-                </View>
+              <View key={field} style={[styles.tableRow, isConflictingField && styles.conflictRow]}>
+                <Text style={[styles.fieldCell, isConflictingField && styles.conflictText]}>
+                  {field.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                </Text>
+                <Text style={[styles.dataCell, isConflictingField && styles.conflictText]}>
+                  {String(localValue || 'N/A')}
+                </Text>
+                <Text style={[styles.dataCell, isConflictingField && styles.conflictText]}>
+                  {String(serverValue || 'N/A')}
+                </Text>
               </View>
             );
           })}
@@ -121,25 +170,50 @@ export default function ResolveConflictsPage() {
         <View style={styles.resolutionContainer}>
           <Text style={styles.sectionTitle}>Choose Resolution</Text>
 
-          <TouchableOpacity
-            style={[styles.resolutionOption, selectedResolution === 'local' && styles.selectedOption]}
-            onPress={() => setSelectedResolution('local')}
-          >
-            <MaterialIcons name="arrow-forward" size={24} color={selectedResolution === 'local' ? '#f97316' : '#6b7280'} />
-            <Text style={[styles.optionTitle, selectedResolution === 'local' && styles.selectedOptionTitle]}>
-              Use My Data
-            </Text>
-          </TouchableOpacity>
+          {isUniqueConstraintConflict ? (
+            // Unique constraint conflict - show editable form
+            <View>
+              <Text style={styles.uniqueConstraintText}>
+                This field has a unique constraint violation. Please enter a new unique value:
+              </Text>
+              
+              <View style={styles.editableContainer}>
+                <Text style={styles.editableLabel}>
+                  New {conflictData?.conflict?.conflict_field?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}:
+                </Text>
+                <TextInput
+                  style={styles.editableInput}
+                  value={editableValue}
+                  onChangeText={setEditableValue}
+                  placeholder={`Enter new ${conflictData?.conflict?.conflict_field?.replace(/_/g, ' ')}`}
+                  placeholderTextColor="#9ca3af"
+                />
+              </View>
+            </View>
+          ) : (
+            // Normal conflict - show resolution buttons
+            <View>
+              <TouchableOpacity
+                style={[styles.resolutionOption, selectedResolution === 'local' && styles.selectedOption]}
+                onPress={() => setSelectedResolution('local')}
+              >
+                <MaterialIcons name="arrow-forward" size={24} color={selectedResolution === 'local' ? '#f97316' : '#6b7280'} />
+                <Text style={[styles.optionTitle, selectedResolution === 'local' && styles.selectedOptionTitle]}>
+                  Use My Data
+                </Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.resolutionOption, selectedResolution === 'server' && styles.selectedOption]}
-            onPress={() => setSelectedResolution('server')}
-          >
-            <MaterialIcons name="arrow-back" size={24} color={selectedResolution === 'server' ? '#f97316' : '#6b7280'} />
-            <Text style={[styles.optionTitle, selectedResolution === 'server' && styles.selectedOptionTitle]}>
-              Use Server Data
-            </Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.resolutionOption, selectedResolution === 'server' && styles.selectedOption]}
+                onPress={() => setSelectedResolution('server')}
+              >
+                <MaterialIcons name="arrow-back" size={24} color={selectedResolution === 'server' ? '#f97316' : '#6b7280'} />
+                <Text style={[styles.optionTitle, selectedResolution === 'server' && styles.selectedOptionTitle]}>
+                  Use Server Data
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* Action Buttons */}
@@ -148,13 +222,23 @@ export default function ResolveConflictsPage() {
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.confirmButton, !selectedResolution && styles.disabledButton]}
-            onPress={handleConfirmResolution}
-            disabled={!selectedResolution}
-          >
-            <Text style={styles.confirmButtonText}>Confirm</Text>
-          </TouchableOpacity>
+          {isUniqueConstraintConflict ? (
+            <TouchableOpacity
+              style={[styles.confirmButton, !editableValue.trim() && styles.disabledButton]}
+              onPress={() => handleUniqueConstraintResolution()}
+              disabled={!editableValue.trim()}
+            >
+              <Text style={styles.confirmButtonText}>Send</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.confirmButton, !selectedResolution && styles.disabledButton]}
+              onPress={handleConfirmResolution}
+              disabled={!selectedResolution}
+            >
+              <Text style={styles.confirmButtonText}>Confirm</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
 
@@ -247,6 +331,53 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#f4ece6',
   },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 2,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  tableHeaderText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#495057',
+    textAlign: 'center',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    backgroundColor: '#ffffff',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+    alignItems: 'center',
+  },
+  conflictRow: {
+    backgroundColor: '#fef2f2',
+    borderBottomColor: '#fecaca',
+  },
+  fieldCell: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    textAlign: 'left',
+    paddingRight: 8,
+  },
+  dataCell: {
+    flex: 1,
+    fontSize: 14,
+    color: '#374151',
+    textAlign: 'center',
+    paddingHorizontal: 4,
+  },
+  conflictText: {
+    color: '#f97316',
+    fontWeight: '600',
+  },
   fieldName: {
     fontSize: 16,
     fontWeight: '600',
@@ -336,5 +467,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
+  },
+  uniqueConstraintText: {
+    fontSize: 16,
+    color: '#f97316',
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  editableContainer: {
+    backgroundColor: '#ffffff',
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#f4ece6',
+  },
+  editableLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1c130d',
+    marginBottom: 8,
+  },
+  editableInput: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#374151',
   },
 });

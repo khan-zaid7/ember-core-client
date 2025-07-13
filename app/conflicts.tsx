@@ -80,7 +80,7 @@ export default function ConflictsPage() {
           style={{ flex: 1 }}
           onPress={() => {
             // Navigate to resolve conflicts page
-            router.push(`/resolve-conflicts?conflictId=${item.sync_id}`);
+            router.push(`/resolve-conflicts?syncId=${item.sync_id}`);
           }}
           activeOpacity={0.8}
         >

@@ -145,3 +145,49 @@ export const getLastSyncStatus = (userId: string): { lastSync: string | null, is
     isAllSynced: (unsyncedCount?.count ?? 0) === 0,
   };
 };
+
+export const getConflictWithEntityDetails = (userId: string, syncId: string): {
+  conflict: SyncQueueItem;
+  clientData: any;
+  serverData: any;
+} | null => {
+  try {
+    // Get the conflict from sync_queue
+    const conflict = db.getFirstSync<SyncQueueItem>(
+      `SELECT * FROM sync_queue WHERE sync_id = ? AND created_by = ?`,
+      [syncId, userId]
+    );
+
+    if (!conflict) {
+      console.warn(`⚠️ No conflict found for sync_id: ${syncId} and userId: ${userId}`);
+      return null;
+    }
+
+    // Get client data from the appropriate entity table
+    const clientData = getEntityDetails(conflict.entity_type, conflict.entity_id);
+
+    if (!clientData) {
+      console.warn(`⚠️ No client data found for ${conflict.entity_type}:${conflict.entity_id}`);
+      return null;
+    }
+
+    // Parse server data from latest_data JSON
+    let serverData = null;
+    if (conflict.latest_data) {
+      try {
+        serverData = JSON.parse(conflict.latest_data);
+      } catch (error) {
+        console.error('❌ Failed to parse server data from latest_data:', error);
+      }
+    }
+
+    return {
+      conflict,
+      clientData,
+      serverData,
+    };
+  } catch (error) {
+    console.error(`❌ Failed to get conflict details for sync_id: ${syncId}`, error);
+    return null;
+  }
+};
