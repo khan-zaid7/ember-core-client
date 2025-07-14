@@ -1,7 +1,7 @@
 import { Footer, useFooterNavigation } from '@/components/Footer';
 import Header from '@/components/Header';
 import SettingsComponent from '@/components/SettingsComponent';
-import AuthGuard from '@/components/AuthGuard';
+// Removed AuthGuard - already in _layout.tsx
 import { useAuth } from '@/context/AuthContext';
 import { getTasksByUserId } from '@/services/models/TaskModel';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -209,15 +209,14 @@ export default function TasksList() {
   };
 
   return (
-    <AuthGuard>
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-        {/* Header */}
-        <Header
-          title="All Tasks"
-          showSettings
-          onSettingsPress={() => setSettingsModalVisible(true)}
-          onBackPress={() => router.back()}
-        />
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+      {/* Header */}
+      <Header
+        title="All Tasks"
+        showSettings
+        onSettingsPress={() => setSettingsModalVisible(true)}
+        onBackPress={() => router.back()}
+      />
 
         {/* Refresh indicator and stats */}
         <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
@@ -458,7 +457,6 @@ export default function TasksList() {
         <Footer activeTab={activeTab} onTabPress={handleTabPress} />
         <SettingsComponent visible={settingsModalVisible} onClose={() => setSettingsModalVisible(false)} />
       </SafeAreaView>
-    </AuthGuard>
   );
 }
 

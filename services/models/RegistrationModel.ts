@@ -36,8 +36,8 @@ export const insertRegistrationOffline = (form: {
 
   // Insert into registrations
   db.runSync(
-    `INSERT INTO registrations (registration_id, user_id, person_name, age, gender, location_id, timestamp, synced, sync_status_message)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO registrations (registration_id, user_id, person_name, age, gender, location_id, timestamp, synced, sync_status_message, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       registration_id,
       user_id,
@@ -47,7 +47,8 @@ export const insertRegistrationOffline = (form: {
       location_id,
       timestamp,
       0, // synced
-      '' // sync_status_message
+      '', // sync_status_message
+      new Date().toISOString() // updated_at
     ]
   );
 

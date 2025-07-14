@@ -6,18 +6,13 @@ import { syncSupply } from './handlers/syncSupply';
 import { syncTask } from './handlers/syncTask';
 import { syncTaskAssignment } from './handlers/syncTaskAssignment';
 import { syncLocation } from './handlers/syncLocation';
+import { ProcessedSyncResult } from './types';
 // import { syncAlert } from './handlers/syncAlert';
 
 export const syncEntity = async (
     entity_type: string,
     entity_id: string
-): Promise<{
-    success: boolean;
-    status?: number;
-    conflict_field?: string;
-    latest_data?: any;
-    allowed_strategies?: string[];
-}> => {
+): Promise<ProcessedSyncResult> => {
     switch (entity_type) {
         case 'user':
             return await syncUser(entity_id);
