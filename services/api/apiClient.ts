@@ -371,3 +371,106 @@ export const resolveEntityConflict = async (
       throw new Error(`Unsupported entity type: ${entityType}`);
   }
 };
+
+// === PULL FUNCTIONS - Fetch data from server ===
+
+// Pull individual entity types
+export const pullUsersFromServer = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`/user/${userId}/pull`);
+    console.log('✅ Users pulled from server:', response.data.data.length, 'items');
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error pulling users:', error.message);
+    throw error;
+  }
+};
+
+export const pullLocationsFromServer = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`/location/${userId}/pull`);
+    console.log('✅ Locations pulled from server:', response.data.data.length, 'items');
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error pulling locations:', error.message);
+    throw error;
+  }
+};
+
+export const pullSuppliesFromServer = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`/supply/${userId}/pull`);
+    console.log('✅ Supplies pulled from server:', response.data.data.length, 'items');
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error pulling supplies:', error.message);
+    throw error;
+  }
+};
+
+export const pullTasksFromServer = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`/task/${userId}/pull`);
+    console.log('✅ Tasks pulled from server:', response.data.data.length, 'items');
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error pulling tasks:', error.message);
+    throw error;
+  }
+};
+
+export const pullRegistrationsFromServer = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`/registration/${userId}/pull`);
+    console.log('✅ Registrations pulled from server:', response.data.data.length, 'items');
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error pulling registrations:', error.message);
+    throw error;
+  }
+};
+
+export const pullTaskAssignmentsFromServer = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`/task-assignment/${userId}/pull`);
+    console.log('✅ Task assignments pulled from server:', response.data.data.length, 'items');
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error pulling task assignments:', error.message);
+    throw error;
+  }
+};
+
+export const pullAlertsFromServer = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`/alert/${userId}/pull`);
+    console.log('✅ Alerts pulled from server:', response.data.data.length, 'items');
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error pulling alerts:', error.message);
+    throw error;
+  }
+};
+
+export const pullNotificationsFromServer = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`/notification/${userId}/pull`);
+    console.log('✅ Notifications pulled from server:', response.data.data.length, 'items');
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error pulling notifications:', error.message);
+    throw error;
+  }
+};
+
+// Pull all data at once (bulk pull)
+export const pullAllDataFromServer = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`/bulk/${userId}/pull`);
+    console.log('✅ All data pulled from server:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error pulling all data:', error.message);
+    throw error;
+  }
+};
