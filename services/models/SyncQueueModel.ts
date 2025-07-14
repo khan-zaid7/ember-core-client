@@ -57,7 +57,7 @@ export const makeConflict = (
 
     db.runSync(
       `UPDATE sync_queue
-       SET status = ?, conflict_field = ?, latest_data = ?, allowed_strategies = ?, updated_at = ?
+       SET status = ?, conflict_field = ?, latest_data = ?, allowed_strategies = ?, updated_at = ?, last_attempt_at = ?
        WHERE sync_id = ?`,
       [
         'conflict', 
@@ -65,6 +65,7 @@ export const makeConflict = (
         JSON.stringify(latest_data), 
         allowed_strategies ? JSON.stringify(allowed_strategies) : null, 
         timestamp, 
+        timestamp, // Add last_attempt_at
         sync_id
       ]
     );
@@ -141,16 +142,29 @@ export const getConflictItems = (userId: string): SyncQueueItem[] => {
 
 // Returns the last sync date/time and whether all items are synced for a user
 export const getLastSyncStatus = (userId: string): { lastSync: string | null, isAllSynced: boolean } => {
-  const lastSyncRow = db.getFirstSync<{ last_attempt_at: string | null }>(
-    `SELECT MAX(last_attempt_at) as last_attempt_at FROM sync_queue WHERE created_by = ?`,
+  // Get the most recent successful sync timestamp
+  const lastSuccessfulSyncRow = db.getFirstSync<{ last_attempt_at: string | null }>(
+    `SELECT MAX(last_attempt_at) as last_attempt_at FROM sync_queue WHERE created_by = ? AND status = 'success'`,
     [userId]
   );
+  
+  // Get the most recent sync attempt (success, failure, or conflict)
+  const lastAttemptRow = db.getFirstSync<{ last_attempt_at: string | null }>(
+    `SELECT MAX(last_attempt_at) as last_attempt_at FROM sync_queue WHERE created_by = ? AND last_attempt_at IS NOT NULL`,
+    [userId]
+  );
+  
+  // Count items that still need to be synced
   const unsyncedCount = db.getFirstSync<{ count: number }>(
-    `SELECT COUNT(*) as count FROM sync_queue WHERE (status IS NULL OR status != 'success') AND created_by = ?`,
+    `SELECT COUNT(*) as count FROM sync_queue WHERE (status IS NULL OR status = 'pending' OR status = 'failed' OR status = 'conflict') AND created_by = ?`,
     [userId]
   );
+  
+  // Use the most recent successful sync for "last sync", or the most recent attempt if no success
+  const lastSync = lastSuccessfulSyncRow?.last_attempt_at || lastAttemptRow?.last_attempt_at || null;
+  
   return {
-    lastSync: lastSyncRow?.last_attempt_at || null,
+    lastSync: lastSync,
     isAllSynced: (unsyncedCount?.count ?? 0) === 0,
   };
 };

@@ -8,6 +8,7 @@ import DashboardHeader from '@/components/Header';
 import SettingsComponent from '@/components/SettingsComponent';
 import { useAuth } from '@/context/AuthContext';
 import { getConflictWithEntityDetails, markSyncSuccess } from '@/services/models/SyncQueueModel';
+import { markEntitySynced } from '@/services/models/GenericModel';
 import { resolveEntityConflict } from '@/services/api/apiClient';
 
 // Components
@@ -165,6 +166,7 @@ export default function ResolveConflictsPage() {
       const response: { success: boolean; status?: ResolveStatus; message?: string } = await resolveEntityConflict(entityType, entityId, strategy, clientData);
       if (response.success) {
         markSyncSuccess(conflictData.conflict?.sync_id ?? "");
+        markEntitySynced(entityType, entityId); // Universal fix: mark entity as synced
         Alert.alert(
           'Success',
           `The conflict has been resolved using ${selectedResolution === 'local' ? 'your local data' : 'server data'}.`,
@@ -224,6 +226,7 @@ export default function ResolveConflictsPage() {
       const response: { success: boolean; status?: ResolveStatus; message?: string } = await resolveEntityConflict(entityType, entityId, strategy, updatedClientData);
       if (response.success) {
         markSyncSuccess(conflictData.conflict?.sync_id ?? "");
+        markEntitySynced(entityType, entityId); // Universal fix: mark entity as synced
         const changedFields = uniqueConstraintFields.map(field =>
           `${formatFieldName(field)}: ${editableValues[field]}`
         ).join(', ');
