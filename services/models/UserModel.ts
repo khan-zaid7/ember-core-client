@@ -201,17 +201,12 @@ export const updateUserOffline = async (user: {
     [name, email, phone_number, role, user_id]
   );
 
-  const existingSync = db.getFirstSync(
-    `SELECT sync_id FROM sync_queue WHERE entity_id = ? AND entity_type = 'user'`,
-    [user_id]
+  // Always add a new sync queue entry for updates
+  db.runSync(
+    `INSERT INTO sync_queue (sync_id, entity_type, entity_id, status, retry_count, created_by)
+     VALUES (?, 'user', ?, 'pending', 0, ?)`,
+    [generateUUID(), user_id, user_id]
   );
-  if (!existingSync) {
-    db.runSync(
-      `INSERT INTO sync_queue (sync_id, entity_type, entity_id, status, retry_count, created_by)
-       VALUES (?, 'user', ?, 'pending', 0, ?)`,
-      [generateUUID(), user_id, user_id]
-    );
-  }
 
   return true;
 };
