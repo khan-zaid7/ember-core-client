@@ -29,6 +29,7 @@ export const initDatabase = () => {
       gender TEXT,
       location_id TEXT,
       timestamp TEXT,
+      created_at TEXT,
       updated_at TEXT,
       synced INTEGER DEFAULT 0,
       sync_status_message TEXT
@@ -177,4 +178,23 @@ export const resetDatabase = () => {
   // Optional: re-initialize the schema
   initDatabase();
   console.log('✅ Database reset and re-initialized.');
+};
+
+export const migrateDatabase = () => {
+  try {
+    // Check if created_at column exists in registrations table
+    const tableInfo = db.getAllSync<{ name: string }>(
+      `PRAGMA table_info(registrations);`
+    );
+    
+    const hasCreatedAt = tableInfo.some(column => column.name === 'created_at');
+    
+    if (!hasCreatedAt) {
+      console.log('🔄 Adding created_at column to registrations table...');
+      db.execSync(`ALTER TABLE registrations ADD COLUMN created_at TEXT;`);
+      console.log('✅ Migration completed: added created_at column to registrations');
+    }
+  } catch (error) {
+    console.error('❌ Database migration failed:', error);
+  }
 };

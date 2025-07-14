@@ -9,6 +9,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
 
+  // Initialize sync trigger hook
   useSyncTrigger();
 
   const publicRoutes = [

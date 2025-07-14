@@ -20,7 +20,8 @@ export const NetworkProvider = ({ children }: { children: React.ReactNode }) => 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsConnected(!!state.isConnected);
-      setIsInternetReachable(!!state.isInternetReachable);
+      // Handle null isInternetReachable - treat as reachable if connected
+      setIsInternetReachable(state.isInternetReachable !== false);
     });
     return () => unsubscribe();
   }, []);

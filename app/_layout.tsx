@@ -2,7 +2,7 @@
 import AuthGuard from '@/components/AuthGuard';
 import { AuthProvider } from '@/context/AuthContext';
 import { NotificationProvider } from '@/context/NotificationContext';
-import { initDatabase, verifyTables, resetDatabase } from '@/services/db';
+import { initDatabase, verifyTables, resetDatabase, migrateDatabase } from '@/services/db';
 import { Stack } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Platform } from 'react-native';
@@ -14,6 +14,7 @@ export default function Layout() {
   useEffect(() => {
     if (Platform.OS !== 'web') {
       initDatabase();
+      migrateDatabase(); // Add missing columns to existing database
       verifyTables();
       // resetDatabase()      
     }
