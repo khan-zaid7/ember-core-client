@@ -1,32 +1,28 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
+  Animated,
+  RefreshControl,
   SafeAreaView,
-  View,
   Text,
   TouchableOpacity,
-  Animated,
-  Alert,
-  Dimensions,
-  RefreshControl,
+  View
 } from 'react-native';
-import { ScrollView, GestureHandlerRootView, RectButton, Swipeable } from 'react-native-gesture-handler';
-import DashboardHeader from '../components/Header';
+import { GestureHandlerRootView, RectButton, ScrollView, Swipeable } from 'react-native-gesture-handler';
 import { Footer, useFooterNavigation } from '../components/Footer';
+import DashboardHeader from '../components/Header';
 import SettingsComponent from '../components/SettingsComponent';
-import { 
-  NotificationModel, 
-  getAllNotifications, 
-  markNotificationAsRead,
-  getNotificationById,
-  getNotificationsByUserId,
-  getUnreadNotificationsByUserId,
+import { useAuth } from '../context/AuthContext';
+import {
+  NotificationModel,
   archiveNotification as archiveNotificationModel,
   deleteNotification as deleteNotificationModel,
+  getNotificationsByUserId,
+  getUnreadNotificationsByUserId,
+  markNotificationAsRead
 } from '../services/models/NotificationModel';
-import { db } from '../services/db';
-import { useAuth } from '../context/AuthContext';
 
 // Define notification item structure for UI representation
 type NotificationItem = {
@@ -294,7 +290,6 @@ export default function InboxScreen() {
         friction={2}
         leftThreshold={40}
         rightThreshold={40}
-        renderLeftActions={(progress, dragX) => renderLeftActions(progress, dragX, notification.id)}
         renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, notification.id)}
         onSwipeableOpen={() => {
           // Close any other open swipeables
