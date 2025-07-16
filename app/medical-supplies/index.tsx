@@ -6,8 +6,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import DashboardHeader from '@/components/Header';
 import { Footer, useFooterNavigation } from '@/components/Footer';
-import { getAllSupplies, deleteSupplyOffline } from '@/services/models/SuppliesModel';
+import { getAllSupplies } from '@/services/models/SuppliesModel';
 import SettingsComponent from '@/components/SettingsComponent';
+import { useAuth } from '@/context/AuthContext';
 
 type SupplyItem = {
   id: string;
@@ -22,6 +23,7 @@ type SupplyItem = {
 
 export default function MedicalSuppliesList() {
   const router = useRouter();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
@@ -29,9 +31,11 @@ export default function MedicalSuppliesList() {
 
   // ✅ Load data on screen focus
   useFocusEffect(
-    React.useCallback(() => {
+
+    useCallback(() => {
+      if (!user?.user_id) return;
       try {
-        const data = getAllSupplies().map((item) => ({
+        const data = getAllSupplies(user.user_id).map((item) => ({
           id: item.supply_id,
           itemName: item.item_name,
           quantity: item.quantity,
@@ -45,7 +49,7 @@ export default function MedicalSuppliesList() {
       } catch (err) {
         console.error('Failed to load supplies:', err);
       }
-    }, [])
+    }, [user?.user_id])
   );
 
   const filteredSupplies = supplies.filter(supply =>
@@ -54,7 +58,6 @@ export default function MedicalSuppliesList() {
   );
 
   const handleDelete = (supplyId: string) => {
-    deleteSupplyOffline(supplyId);
     setSupplies(prev => prev.filter(item => item.id !== supplyId));
   };
 

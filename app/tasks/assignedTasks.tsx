@@ -1,102 +1,44 @@
 import { Footer, useFooterNavigation } from '@/components/Footer';
 import Header from '@/components/Header';
 import SettingsComponent from '@/components/SettingsComponent';
+// Removed AuthGuard - already in _layout.tsx
+import { useAuth } from '@/context/AuthContext';
+import { getTasksByUserId } from '@/services/models/TaskModel';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Add mock data for dueDate, createdAt, description, and taskId
-const mockTasks = [
-  {
-    id: '1',
-    title: 'Task Title 1',
-    assignee: 'Ava Hayes',
-    assignedBy: 'Zaid Khan',
-    status: 'Synced',
-    ago: '2d ago',
-    dueDate: '2024-06-10',
-    createdAt: '2024-06-01 10:30 AM',
-    description: 'This is a sample description for Task 1. It can be multi-line and will appear at the bottom of the modal.',
-    taskId: 'a1b2c3d4e5f6g7h8',
-  },
-  {
-    id: '2',
-    title: 'Task Title 2',
-    assignee: 'Liam Carter',
-    assignedBy: 'Zaid Khan',
-    status: 'Unsynced',
-    ago: '1d ago',
-    dueDate: '2024-06-09',
-    createdAt: '2024-06-01 09:00 AM',
-    description: 'Description for Task 2. Short.',
-    taskId: 'i9j0k1l2m3n4o5p6',
-  },
-  {
-    id: '3',
-    title: 'Task Title 3',
-    assignee: 'Olivia Bennett',
-    assignedBy: 'Zaid Khan',
-    status: 'Synced',
-    ago: '3d ago',
-    dueDate: '2024-06-07',
-    createdAt: '2024-06-01 11:00 AM',
-    description: 'This is a longer description for Task 3. It will wrap to multiple lines in the modal.',
-    taskId: 'q7r8s9t0u1v2w3x4',
-  },
-  {
-    id: '4',
-    title: 'Task Title 4',
-    assignee: 'Noah Thompson',
-    assignedBy: 'Zaid Khan',
-    status: 'Synced',
-    ago: '4d ago',
-    dueDate: '2024-06-06',
-    createdAt: '2024-06-01 02:00 PM',
-    description: 'Description for Task 4. Very short.',
-    taskId: 'y5z6a7b8c9d0e1f2',
-  },
-  {
-    id: '5',
-    title: 'Task Title 5',
-    assignee: 'Isabella Reed',
-    assignedBy: 'Zaid Khan',
-    status: 'Unsynced',
-    ago: '2d ago',
-    dueDate: '2024-06-08',
-    createdAt: '2024-06-01 03:00 PM',
-    description: 'This is a very long description for Task 5. It will wrap to multiple lines in the modal and test the wrapping.',
-    taskId: 'g1h2i3j4k5l6m7',
-  },
-  {
-    id: '6',
-    title: 'Task Title 6',
-    assignee: 'Ethan Parker',
-    assignedBy: 'Zaid Khan',
-    status: 'Synced',
-    ago: '5d ago',
-    dueDate: '2024-06-05',
-    createdAt: '2024-06-01 04:00 PM',
-    description: 'Description for Task 6. Extremely short.',
-    taskId: 'n8o9p0q1r2s3t4u',
-  },
-];
-
-const assignees = [
-  'All',
-  ...Array.from(new Set(mockTasks.map((t) => t.assignee))),
-];
+interface Task {
+  task_id: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  created_by: string;
+  created_by_name: string;
+  due_date: string;
+  created_at: string;
+  updated_at: string;
+  synced: number;
+  assignment_status: string;
+  assignment_feedback: string;
+  assigned_at: string;
+}
 
 export default function TasksList() {
   const router = useRouter();
+  const { user } = useAuth();
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [assigneeFilter, setAssigneeFilter] = useState('All');
+  const [priorityFilter, setPriorityFilter] = useState('All');
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   // Animation state for each task
   const [syncing, setSyncing] = useState<{ [id: string]: boolean }>({});
@@ -105,6 +47,66 @@ export default function TasksList() {
   // Animation state for modal
   const modalFadeAnim = useRef(new Animated.Value(0)).current;
   const modalSlideAnim = useRef(new Animated.Value(0)).current;
+
+  // Load tasks when component mounts or user changes
+  useEffect(() => {
+    if (user?.user_id) {
+      loadTasks();
+    }
+  }, [user]);
+
+  const loadTasks = async () => {
+    try {
+      setLoading(true);
+      if (user?.user_id) {
+        const userTasks = getTasksByUserId(user.user_id);
+        setTasks(userTasks);
+      }
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get unique assignees for filter (since all tasks are assigned to current user, this would be their name)
+  const assignees = [
+    'All',
+    user?.name || 'Current User'
+  ];
+
+  // Helper function to format date
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Helper function to get sync status display
+  const getSyncStatus = (synced: number) => {
+    return synced === 1 ? 'Synced' : 'Unsynced';
+  };
+
+  // Helper function to calculate time ago
+  const getTimeAgo = (dateString: string) => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffInMs = now.getTime() - date.getTime();
+      const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+      if (diffInDays === 0) return 'Today';
+      if (diffInDays === 1) return '1d ago';
+      return `${diffInDays}d ago`;
+    } catch {
+      return '-';
+    }
+  };
 
   // Animate modal open/close
   useEffect(() => {
@@ -140,18 +142,39 @@ export default function TasksList() {
     }
   }, [modalVisible, modalFadeAnim, modalSlideAnim]);
 
+  // Helper function to get priority color
+  const getPriorityColor = (priority: string) => {
+    switch (priority?.toLowerCase()) {
+      case 'urgent':
+        return '#ef4444'; // red
+      case 'high':
+        return '#f97316'; // orange
+      case 'normal':
+        return '#3b82f6'; // blue
+      case 'low':
+        return '#22c55e'; // green
+      default:
+        return '#6b7280'; // gray
+    }
+  };
+
+  // Helper function to get priority display text
+  const getPriorityDisplay = (priority: string) => {
+    return priority ? priority.charAt(0).toUpperCase() + priority.slice(1) : 'Normal';
+  };
+
   // Filtering logic
-  const filteredTasks = mockTasks.filter((task) => {
+  const filteredTasks = tasks.filter((task: Task) => {
     const matchesSearch =
       task.title.toLowerCase().includes(search.toLowerCase()) ||
-      task.assignee.toLowerCase().includes(search.toLowerCase());
+      (task.created_by_name && task.created_by_name.toLowerCase().includes(search.toLowerCase()));
     const matchesStatus =
       statusFilter === 'All' ||
-      (statusFilter === 'Synced' && task.status === 'Synced') ||
-      (statusFilter === 'Unsynced' && task.status === 'Unsynced');
-    const matchesAssignee =
-      assigneeFilter === 'All' || task.assignee === assigneeFilter;
-    return matchesSearch && matchesStatus && matchesAssignee;
+      (statusFilter === 'Synced' && task.synced === 1) ||
+      (statusFilter === 'Unsynced' && task.synced === 0);
+    const matchesPriority =
+      priorityFilter === 'All' || task.priority?.toLowerCase() === priorityFilter.toLowerCase();
+    return matchesSearch && matchesStatus && matchesPriority;
   });
 
   // Dropdown cycling logic
@@ -160,30 +183,30 @@ export default function TasksList() {
       prev === 'All' ? 'Synced' : prev === 'Synced' ? 'Unsynced' : 'All'
     );
   };
-  const cycleAssignee = () => {
-    const idx = assignees.indexOf(assigneeFilter);
-    setAssigneeFilter(assignees[(idx + 1) % assignees.length]);
+  const priorities = ['All', 'Low', 'Normal', 'High', 'Urgent'];
+  const cyclePriority = () => {
+    const idx = priorities.findIndex(p => p.toLowerCase() === priorityFilter.toLowerCase());
+    setPriorityFilter(priorities[(idx + 1) % priorities.length]);
   };
 
   // Helper to start sync animation for a task
-  const startSyncAnimation = (id: string) => {
-    if (!rotationAnims.current[id]) {
-      rotationAnims.current[id] = new Animated.Value(0);
+  const startSyncAnimation = (taskId: string) => {
+    if (!rotationAnims.current[taskId]) {
+      rotationAnims.current[taskId] = new Animated.Value(0);
     }
-    setSyncing(prev => ({ ...prev, [id]: true }));
-    rotationAnims.current[id].setValue(0);
-    Animated.timing(rotationAnims.current[id], {
+    setSyncing(prev => ({ ...prev, [taskId]: true }));
+    rotationAnims.current[taskId].setValue(0);
+    Animated.timing(rotationAnims.current[taskId], {
       toValue: 1,
       duration: 1500,
       useNativeDriver: true,
-      easing: undefined,
     }).start(() => {
-      setSyncing(prev => ({ ...prev, [id]: false }));
-      rotationAnims.current[id].setValue(0);
+      setSyncing(prev => ({ ...prev, [taskId]: false }));
+      rotationAnims.current[taskId].setValue(0);
+      // Refresh tasks after sync animation completes
+      loadTasks();
     });
   };
-
-  const chevronDownStyle = { transform: [{ rotate: '90deg' }] };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -194,160 +217,246 @@ export default function TasksList() {
         onSettingsPress={() => setSettingsModalVisible(true)}
         onBackPress={() => router.back()}
       />
-      {/* Search Bar */}
-      <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
-        <View style={styles.searchBar}>
-          <MaterialIcons name="search" size={24} color="#6b7280" style={{ marginLeft: 12 }} />
-          <TextInput
-            placeholder="Search by title or assignee"
-            placeholderTextColor="#6b7280"
-            style={styles.searchInput}
-            value={search}
-            onChangeText={setSearch}
-            underlineColorAndroid="transparent"
-          />
+
+        {/* Refresh indicator and stats */}
+        <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ color: '#81736a', fontSize: 14 }}>
+              {tasks.length} tasks total
+            </Text>
+            <TouchableOpacity
+              onPress={loadTasks}
+              style={{ flexDirection: 'row', alignItems: 'center' }}
+              disabled={loading}
+            >
+              <MaterialIcons
+                name="refresh"
+                size={20}
+                color={loading ? '#ccc' : '#f97316'}
+                style={{ marginRight: 4 }}
+              />
+              <Text style={{ color: loading ? '#ccc' : '#f97316', fontSize: 14 }}>
+                Refresh
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-      {/* Filters */}
-      <View style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 16, marginBottom: 8 }}>
-        {/* Status Filter */}
-        <TouchableOpacity
-          style={styles.filterButton}
-          activeOpacity={0.7}
-          onPress={cycleStatus}
-        >
-          <Text style={styles.filterButtonText}>Status: {statusFilter}</Text>
-          <MaterialIcons name="arrow-drop-down" size={20} color="#1c130d" />
-        </TouchableOpacity>
-        {/* Assignee Filter */}
-        <TouchableOpacity
-          style={styles.filterButton}
-          activeOpacity={0.7}
-          onPress={cycleAssignee}
-        >
-          <Text style={styles.filterButtonText}>Assignee</Text>
-          <MaterialIcons name="arrow-drop-down" size={20} color="#1c130d" />
-        </TouchableOpacity>
-      </View>
-      {/* Task List */}
-      <FlatList
-        data={filteredTasks}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        // Add extraData to force re-render on modal open/close
-        extraData={modalVisible}
-        renderItem={({ item }) => (
+        {/* Search Bar */}
+        <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
+          <View style={styles.searchBar}>
+            <MaterialIcons name="search" size={24} color="#6b7280" style={{ marginLeft: 12 }} />
+            <TextInput
+              placeholder="Search by title or assignee"
+              placeholderTextColor="#6b7280"
+              style={styles.searchInput}
+              value={search}
+              onChangeText={setSearch}
+              underlineColorAndroid="transparent"
+            />
+          </View>
+        </View>
+        {/* Filters */}
+        <View style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 16, marginBottom: 8 }}>
+          {/* Status Filter */}
           <TouchableOpacity
-            style={styles.recordRow}
-            activeOpacity={0.8}
-            onPress={() => {
-              setSelectedTask(item);
-              setModalVisible(true);
-            }}
+            style={styles.filterButton}
+            activeOpacity={0.7}
+            onPress={cycleStatus}
           >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.entityType}>{item.title}</Text>
-              <Text style={styles.recordDetails}>
-                <Text style={{ color: '#f97316' }}>Assigned to: </Text>
-                <Text style={{ color: '#bfa58a' }}>{item.assignee}</Text>
-              </Text>
-              <Text style={styles.recordDetails}>
-                <Text style={{ color: '#f97316' }}>Assigned by: </Text>
-                <Text style={{ color: '#bfa58a' }}>{item.assignedBy}</Text>
-              </Text>
-            </View>
-            <MaterialIcons name="keyboard-arrow-down" size={28} color="#f97316"/>
+            <Text style={styles.filterButtonText}>Status: {statusFilter}</Text>
+            <MaterialIcons name="arrow-drop-down" size={20} color="#1c130d" />
           </TouchableOpacity>
-        )}
-        ListEmptyComponent={
-          <Text style={{ textAlign: 'center', marginTop: 32, color: '#9e6b47', fontSize: 16 }}>
-            No tasks found.
-          </Text>
-        }
-      />
-      {/* Task Details Modal */}
-      <Modal
-        visible={modalVisible}
-        transparent
-        animationType="none"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <Animated.View style={[styles.modalOverlay, { opacity: modalFadeAnim }]}> {/* Fade animation */}
-          <Pressable style={{ flex: 1 }} onPress={() => setModalVisible(false)} />
-        </Animated.View>
-        <Animated.View style={[styles.modalSheet, {
-          transform: [
-            {
-              translateY: modalSlideAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [300, 0],
-              }),
-            },
-          ],
-        }]}> {/* Slide up animation */}
-          <ScrollView showsVerticalScrollIndicator={true}>
-            {/* Drag handle */}
-            <View style={{ alignItems: 'center', marginTop: 8, marginBottom: 8 }}>
-              <View style={{ width: 48, height: 5, borderRadius: 3, backgroundColor: '#e5ded7' }} />
-            </View>
-            {/* Title and close */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-              <View style={{ flex: 1 }} />
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#161412', textAlign: 'center', flex: 2 }}>Task Details</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)} style={{ flex: 1, alignItems: 'flex-end', paddingRight: 2 }}>
-                <MaterialIcons name="close" size={28} color="#161412" />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.divider} />
-            {selectedTask && (
-              <>
-                <View style={{ flexDirection: 'row', marginBottom: 12 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.infoLabel}>Title</Text>
-                    <Text style={styles.infoValue}>{selectedTask.title}</Text>
+          {/* Priority Filter */}
+          <TouchableOpacity
+            style={styles.filterButton}
+            activeOpacity={0.7}
+            onPress={cyclePriority}
+          >
+            <Text style={styles.filterButtonText}>Priority: {priorityFilter}</Text>
+            <MaterialIcons name="arrow-drop-down" size={20} color="#1c130d" />
+          </TouchableOpacity>
+        </View>
+        {/* Task List */}
+        {loading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ color: '#9e6b47', fontSize: 16 }}>Loading tasks...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredTasks}
+            keyExtractor={(item) => item.task_id}
+            contentContainerStyle={{ paddingBottom: 100 }}
+            // Add extraData to force re-render on modal open/close
+            extraData={modalVisible}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.recordRow}
+                activeOpacity={0.8}
+                onPress={() => {
+                  setSelectedTask(item);
+                  setModalVisible(true);
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                    <Text style={styles.entityType}>{item.title}</Text>
+                    <View style={{
+                      backgroundColor: getPriorityColor(item.priority),
+                      borderRadius: 6,
+                      paddingHorizontal: 8,
+                      paddingVertical: 2,
+                      marginLeft: 8,
+                      alignSelf: 'flex-start',
+                    }}>
+                      <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>{getPriorityDisplay(item.priority)}</Text>
+                    </View>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.infoLabel}>Status</Text>
-                    <Text style={styles.infoValue}>{selectedTask.status}</Text>
-                  </View>
-                </View>
-                <View style={styles.divider} />
-                <View style={{ flexDirection: 'row', marginBottom: 12, marginTop: 8 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.infoLabel}>Due Date</Text>
-                    <Text style={styles.infoValue}>{selectedTask.dueDate || '-'}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.infoLabel}>Created By</Text>
-                    <Text style={styles.infoValue}>{selectedTask.assignedBy}</Text>
-                  </View>
-                </View>
-                <View style={styles.divider} />
-                <View style={{ flexDirection: 'row', marginBottom: 12, marginTop: 8 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.infoLabel}>Created At</Text>
-                    <Text style={styles.infoValue}>{selectedTask.createdAt || '-'}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.infoLabel}>Task ID</Text>
-                    <Text style={styles.infoValue}>
-                      {selectedTask && typeof selectedTask.taskId === 'string' ? `${selectedTask.taskId.slice(0, 4)}...${selectedTask.taskId.slice(-4)}` : '-'}
+                  <Text style={styles.recordDetails}>
+                    <Text style={{ color: '#f97316' }}>Assigned to: </Text>
+                    <Text style={{ color: '#bfa58a' }}>{user?.name || 'You'}</Text>
+                  </Text>
+                  <Text style={styles.recordDetails}>
+                    <Text style={{ color: '#f97316' }}>Assigned by: </Text>
+                    <Text style={{ color: '#bfa58a' }}>{item.created_by_name || 'Unknown'}</Text>
+                  </Text>
+                  <Text style={styles.recordDetails}>
+                    <Text style={{ color: '#f97316' }}>Status: </Text>
+                    <Text style={{ color: getSyncStatus(item.synced) === 'Synced' ? '#22c55e' : '#f97316' }}>
+                      {getSyncStatus(item.synced)}
                     </Text>
-                  </View>
+                    <Text style={{ color: '#81736a', marginLeft: 8 }}>• {getTimeAgo(item.created_at)}</Text>
+                  </Text>
                 </View>
-                <View style={styles.divider} />
-                {/* Description at bottom */}
-                <Text style={styles.infoLabel}>Description</Text>
-                <Text style={[styles.infoValue, { marginBottom: 16 }]}>{selectedTask.description || '-'}</Text>
-              </>
+                <MaterialIcons name="keyboard-arrow-down" size={28} color="#f97316" />
+              </TouchableOpacity>
             )}
-            {/* Footer Buttons - removed */}
-          </ScrollView>
-        </Animated.View>
-      </Modal>
-      <Footer activeTab={activeTab} onTabPress={handleTabPress} />
-      <SettingsComponent visible={settingsModalVisible} onClose={() => setSettingsModalVisible(false)} />
-    </SafeAreaView>
+            ListEmptyComponent={
+              <Text style={{ textAlign: 'center', marginTop: 32, color: '#9e6b47', fontSize: 16 }}>
+                No tasks found.
+              </Text>
+            }
+          />
+        )}
+        {/* Task Details Modal */}
+        {/* Replace your entire Modal with this simplified version */}
+        <Modal
+          visible={modalVisible}
+          transparent={true}
+          animationType="slide" // Keep this as "slide" instead of "none"
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheet}>
+              <ScrollView showsVerticalScrollIndicator={true}>
+                {/* Drag handle */}
+                <View style={{ alignItems: 'center', marginTop: 8, marginBottom: 8 }}>
+                  <View style={{ width: 48, height: 5, borderRadius: 3, backgroundColor: '#e5ded7' }} />
+                </View>
+
+                {/* Title and close - FIXED by replacing MaterialIcons */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+                  <View style={{ flex: 1 }} />
+                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#161412', textAlign: 'center', flex: 2 }}>Task Details</Text>
+                  <TouchableOpacity onPress={() => setModalVisible(false)} style={{ flex: 1, alignItems: 'flex-end', paddingRight: 2 }}>
+                    <Text style={{ fontSize: 24, color: '#161412' }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.divider} />
+
+                {selectedTask && (
+                  <>
+                    {/* First row */}
+                    <View style={{ flexDirection: 'row', marginBottom: 12 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.infoLabel}>Title</Text>
+                        <Text style={styles.infoValue}>{selectedTask.title}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.infoLabel}>Status</Text>
+                        <Text style={styles.infoValue}>{getSyncStatus(selectedTask.synced)}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.divider} />
+
+                    {/* Second row */}
+                    <View style={{ flexDirection: 'row', marginBottom: 12, marginTop: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.infoLabel}>Due Date</Text>
+                        <Text style={styles.infoValue}>{selectedTask.due_date ? formatDate(selectedTask.due_date) : '-'}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.infoLabel}>Created By</Text>
+                        <Text style={styles.infoValue}>{selectedTask.created_by_name || 'Unknown'}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.divider} />
+
+                    {/* Third row */}
+                    <View style={{ flexDirection: 'row', marginBottom: 12, marginTop: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.infoLabel}>Created At</Text>
+                        <Text style={styles.infoValue}>{formatDate(selectedTask.created_at)}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.infoLabel}>Task ID</Text>
+                        <Text style={styles.infoValue}>
+                          {selectedTask.task_id ? `${selectedTask.task_id.slice(0, 4)}...${selectedTask.task_id.slice(-4)}` : '-'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.divider} />
+
+                    {/* Fourth row - Priority row (fixed version) */}
+                    <View style={{ flexDirection: 'row', marginBottom: 12, marginTop: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.infoLabel}>Priority</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          {/* Priority badge */}
+                          <View style={{
+                            backgroundColor: getPriorityColor(selectedTask.priority),
+                            borderRadius: 6,
+                            paddingHorizontal: 8,
+                            paddingVertical: 2,
+                            marginRight: 6,
+                            alignSelf: 'flex-start',
+                          }}>
+                            <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
+                              {getPriorityDisplay(selectedTask.priority)}
+                            </Text>
+                          </View>
+
+                          {/* Priority text */}
+                          {typeof selectedTask.priority === 'string' ? (
+                            <Text style={styles.infoValue}>{selectedTask.priority || '-'}</Text>
+                          ) : (
+                            <Text style={styles.infoValue}>-</Text>
+                          )}
+                        </View>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.infoLabel}>Assignment Status</Text>
+                        <Text style={styles.infoValue}>{selectedTask.assignment_status || '-'}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.divider} />
+
+                    {/* Description at bottom */}
+                    <Text style={styles.infoLabel}>Description</Text>
+                    <Text style={[styles.infoValue, { marginBottom: 16 }]}>{selectedTask.description || '-'}</Text>
+                  </>
+                )}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+        <Footer activeTab={activeTab} onTabPress={handleTabPress} />
+        <SettingsComponent visible={settingsModalVisible} onClose={() => setSettingsModalVisible(false)} />
+      </SafeAreaView>
   );
 }
 
@@ -439,7 +548,8 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.18)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',  // This ensures modal appears from bottom
   },
   modalSheet: {
     backgroundColor: '#ffffff',
@@ -447,13 +557,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     padding: 24,
     paddingBottom: 40,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: -2 },
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
+    maxHeight: '80%',  // Limit height to 80% of screen
   },
 });

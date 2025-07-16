@@ -11,7 +11,7 @@ import {
 import MapView, { Marker, Callout } from "react-native-maps";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
-import DashboardHeader from "../components/Header";
+import DashboardHeader from '../components/Header';
 import { Footer, useFooterNavigation } from "@/components/Footer";
 import { MaterialIcons } from "@expo/vector-icons";
 import SettingsComponent from "../components/SettingsComponent"; // ✅ Import the same SettingsComponent
@@ -147,9 +147,9 @@ export default function MapScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <DashboardHeader
         title="Map"
-        showSettings={!pickerMode}
+        showSettings={true}
         onSettingsPress={() => setSettingsModalVisible(true)}
-        onBackPress={pickerMode ? () => router.back() : () => router.push('/')}
+        onBackPress={pickerMode ? () => router.back() : undefined}
       />
 
       {/* ✅ Use SettingsComponent instead of old Modal */}
@@ -282,7 +282,7 @@ export default function MapScreen() {
               <TouchableOpacity
                 onPress={() => {
                   if (selectedLocation) {
-                    router.replace({
+                    router.push({
                       pathname: params.returnTo as any,
                       params: {
                         ...params,

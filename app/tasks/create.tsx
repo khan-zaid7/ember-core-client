@@ -4,11 +4,17 @@ import React, { useState } from 'react';
 import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { Footer, useFooterNavigation } from '@/components/Footer';
 import { FormInput } from '../../components/FormInput';
 import Header from '../../components/Header';
 import SettingsComponent from '../../components/SettingsComponent';
+import { useAuth } from '@/context/AuthContext';
+import { getAllFieldworkers } from '@/services/models/UserModel';
+import { insertTaskOffline } from '@/services/models/TaskModel';
+import { useEffect } from 'react';
+
 
 // Types for form and errors
 interface TaskForm {
@@ -29,6 +35,7 @@ interface FormErrors {
   assignTo?: string;
   createdBy?: string;
   dueDate?: string;
+  general?: string;
 }
 
 const initialForm: TaskForm = {
@@ -43,7 +50,7 @@ const initialForm: TaskForm = {
 
 const statusOptions = ['Pending', 'In Progress', 'Completed'];
 const priorityOptions = ['Low', 'Medium', 'High'];
-const assignToOptions = ['Field Worker', 'Volunteer'];
+
 
 // Helper to get formatted current date
 function getCurrentDate() {
@@ -60,21 +67,44 @@ export default function CreateTask() {
   const [priorityModalVisible, setPriorityModalVisible] = useState(false);
   const [assignToModalVisible, setAssignToModalVisible] = useState(false);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
   const router = useRouter();
+  const { user } = useAuth();
+  const [assignToOptions, setAssignToOptions] = useState<{ name: string; user_id: string }[]>([]);
+  const [selectedFieldworkers, setSelectedFieldworkers] = useState<{ name: string; user_id: string }[]>([]);
+
+
+  useEffect(() => {
+    const fetchFieldworkers = () => {
+      try {
+        const workers = getAllFieldworkers(); // From local SQLite
+        setAssignToOptions(workers); // Array of { user_id, name }
+      } catch (err) {
+        console.error('Failed to fetch fieldworkers:', err);
+      }
+    };
+
+    fetchFieldworkers();
+  }, []);
+
+  useEffect(() => {
+    const userIds = selectedFieldworkers.map(user => user.user_id).join(',');
+    handleChange('assignTo', userIds);
+  }, [selectedFieldworkers]);
+
 
   const handleChange = (key: keyof TaskForm, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
   };
 
   const isFormValid =
-    form.title.trim() &&
-    form.description.trim() &&
-    form.status.trim() &&
-    form.priority.trim() &&
-    form.assignTo.trim() &&
-    form.createdBy.trim() &&
-    form.dueDate.trim();
+    !!form.title.trim() &&
+    !!form.description.trim() &&
+    !!form.status.trim() &&
+    !!form.priority.trim() &&
+    !!form.assignTo.trim() &&
+    !!form.dueDate.trim();
 
   const validateForm = () => {
     const tempErrors: FormErrors = {};
@@ -83,10 +113,18 @@ export default function CreateTask() {
     if (!form.status.trim()) tempErrors.status = 'Required';
     if (!form.priority.trim()) tempErrors.priority = 'Required';
     if (!form.assignTo.trim()) tempErrors.assignTo = 'Required';
-    if (!form.createdBy.trim()) tempErrors.createdBy = 'Required';
     if (!form.dueDate.trim()) tempErrors.dueDate = 'Required';
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      const formatted = `${selectedDate.getFullYear()}-${pad(selectedDate.getMonth() + 1)}-${pad(selectedDate.getDate())}`;
+      setForm(prev => ({ ...prev, dueDate: formatted }));
+    }
   };
 
   const handleGetToday = () => {
@@ -95,11 +133,23 @@ export default function CreateTask() {
 
   const handleSave = () => {
     if (!validateForm()) return;
-    // Here you would save the task to your backend or local DB
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
-    setForm(initialForm);
-    // Optionally, navigate back or show a message
+    try {
+      insertTaskOffline({
+        title: form.title,
+        description: form.description,
+        status: form.status,
+        priority: form.priority,
+        assignTo: selectedFieldworkers.map(w => w.user_id), // Pass as array
+        createdBy: user?.user_id ?? '',
+        dueDate: form.dueDate,
+      });
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+      setForm(initialForm);
+      setSelectedFieldworkers([]);
+    } catch (err: any) {
+      setErrors({ ...errors, general: err.message || 'Failed to save task' });
+    }
   };
 
   return (
@@ -292,9 +342,12 @@ export default function CreateTask() {
                     justifyContent: 'space-between',
                   }}
                 >
-                  <Text style={{ color: form.assignTo ? '#1e293b' : '#64748b', fontSize: 16 }}>
-                    {form.assignTo || 'Assign to'}
+                  <Text style={{ color: selectedFieldworkers.length ? '#1e293b' : '#64748b', fontSize: 16 }}>
+                    {selectedFieldworkers.length > 0
+                      ? selectedFieldworkers.map(w => w.name).join(', ')
+                      : 'Assign to'}
                   </Text>
+
                   <Ionicons name="chevron-down" size={24} color="#64748b" />
                 </TouchableOpacity>
                 <Modal
@@ -309,39 +362,53 @@ export default function CreateTask() {
                     onPressOut={() => setAssignToModalVisible(false)}
                   >
                     <View style={{ backgroundColor: '#fff', borderRadius: 12, paddingVertical: 12, width: 260, elevation: 8 }}>
-                      {assignToOptions.map(option => (
-                        <TouchableOpacity
-                          key={option}
-                          onPress={() => {
-                            handleChange('assignTo', option);
-                            setAssignToModalVisible(false);
-                          }}
-                          style={{ paddingVertical: 16, paddingHorizontal: 18, alignItems: 'flex-start' }}
-                        >
-                          <Text style={{ fontSize: 16, color: '#1e293b' }}>{option}</Text>
-                        </TouchableOpacity>
-                      ))}
+                      {assignToOptions.length === 0 ? (
+                        <Text style={{ padding: 16, color: '#64748b' }}>No fieldworkers found</Text>
+                      ) : (
+                        <View>
+                          {assignToOptions.length === 0 ? (
+                            <Text>No fieldworkers found</Text>
+                          ) : (
+                            assignToOptions.map((worker: { name: string; user_id: string }) => {
+                              const isSelected = selectedFieldworkers.some(w => w.user_id === worker.user_id);
+                              return (
+                                <TouchableOpacity
+                                  key={worker.user_id}
+                                  onPress={() => {
+                                    setSelectedFieldworkers(prev =>
+                                      isSelected
+                                        ? prev.filter(w => w.user_id !== worker.user_id)
+                                        : [...prev, worker]
+                                    );
+                                  }}
+                                  style={{
+                                    paddingVertical: 14,
+                                    paddingHorizontal: 18,
+                                    backgroundColor: isSelected ? '#fed7aa' : 'transparent',
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                  }}
+
+                                >
+                                  <Text style={{ fontSize: 16, color: '#1e293b' }}>{worker.name}</Text>
+                                  {isSelected && <Ionicons name="checkmark-circle" size={20} color="#ef4444" />}
+                                </TouchableOpacity>
+                              );
+                            })
+                          )}
+                        </View>
+
+
+
+                      )}
                     </View>
                   </TouchableOpacity>
                 </Modal>
+
                 <View style={{ minHeight: 18, marginTop: 2 }}>
                   <Text style={{ color: '#ef4444', fontSize: 18 }}>
                     {errors.assignTo || ' '}
-                  </Text>
-                </View>
-              </View>
-              {/* Created By */}
-              <View style={{ marginBottom: 18, height: 54, justifyContent: 'center' }}>
-                <FormInput
-                  value={form.createdBy}
-                  onChangeText={text => handleChange('createdBy', text)}
-                  placeholder="Created By"
-                  theme="light"
-                  fontSize={16}
-                />
-                <View style={{ minHeight: 18, marginTop: 2 }}>
-                  <Text style={{ color: '#ef4444', fontSize: 18 }}>
-                    {errors.createdBy || ' '}
                   </Text>
                 </View>
               </View>
@@ -349,16 +416,18 @@ export default function CreateTask() {
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#334155', marginBottom: 16 }}>Due Date</Text>
               <View style={{ marginBottom: 24, flexDirection: 'row', alignItems: 'center', gap: 12, height: 54 }}>
                 <View style={{ flex: 1, height: 54, justifyContent: 'center' }}>
-                  <FormInput
-                    value={form.dueDate}
-                    onChangeText={() => { }}
-                    placeholder="Due Date (YYYY-MM-DD)"
-                    theme="light"
-                    keyboardType="default"
-                    secureTextEntry={false}
-                    editable={false}
-                    fontSize={16}
-                  />
+                  <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+                    <FormInput
+                      value={form.dueDate}
+                      onChangeText={() => { }}
+                      placeholder="Due Date (YYYY-MM-DD)"
+                      theme="light"
+                      keyboardType="default"
+                      secureTextEntry={false}
+                      editable={false}
+                      fontSize={16}
+                    />
+                  </TouchableOpacity>
                   <View style={{ minHeight: 18, marginTop: 2 }}>
                     <Text style={{ color: '#ef4444', fontSize: 14 }}>
                       {errors.dueDate || ' '}
@@ -366,12 +435,20 @@ export default function CreateTask() {
                   </View>
                 </View>
                 <TouchableOpacity
-                  onPress={handleGetToday}
+                  onPress={() => setShowDatePicker(true)}
                   style={{ backgroundColor: '#f97316', paddingHorizontal: 18, height: 44, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 18 }}
                 >
-                  <Text style={{ color: '#fff', fontWeight: '600', fontSize: 16 }}>Today</Text>
+                  <Text style={{ color: '#fff', fontWeight: '600', fontSize: 16 }}>Pick</Text>
                 </TouchableOpacity>
               </View>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={form.dueDate ? new Date(form.dueDate) : new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={handleDateChange}
+                />
+              )}
               <TouchableOpacity
                 onPress={handleSave}
                 style={{

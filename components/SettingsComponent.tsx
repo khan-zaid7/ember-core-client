@@ -54,14 +54,6 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({ visible, onClose 
 
               <TouchableOpacity
                 style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }}
-                onPress={() => handleRoute('/preferences')}
-              >
-                <MaterialIcons name="tune" size={22} color="#f97316" style={{ marginRight: 12 }} />
-                <Text style={{ fontSize: 16, color: '#161412' }}>Preferences</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }}
                 onPress={() => {
                   logout();
                   onClose();

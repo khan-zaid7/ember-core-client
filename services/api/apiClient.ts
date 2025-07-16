@@ -1,5 +1,8 @@
 // services/api/apiClient.ts
 import axios from 'axios';
+import { insertNotification, checkExistingConflictNotification } from '../models/NotificationModel';
+import { generateUUID } from '../../utils/generateUUID';
+import { showNotification } from '../../utils/notificationManager';
 
 // const API_BASE_URL = 'http://localhost:5000/api/sync'; 
 const API_BASE_URL = 'http://172.20.10.4:5000/api/sync'; 
@@ -10,10 +13,60 @@ const axiosInstance = axios.create({
   timeout: 5000,
 });
 
+// Helper function to handle conflict errors and create notifications
+const handleConflictError = (error: any, entityType: string, entityData: any) => {
+  if (error.response?.status === 409) {
+    const errorMessage = `A conflict was detected while syncing ${entityType}: ${error.response.data?.message || 'Data already exists or has been modified'}`;
+    
+    // Create a unique conflict key based on entity type and ID
+    // This helps us avoid duplicate notifications for the same conflict
+    const entityId = entityData.id || entityData[`${entityType}_id`] || '';
+    const conflictKey = `${entityType}_${entityId}_conflict`;
+    
+    // Create a notification for the conflict
+    const notification = {
+      notification_id: generateUUID(),
+      user_id: entityData.user_id || '',
+      title: 'Sync Conflict',
+      message: errorMessage,
+      type: 'warning',
+      entity_type: entityType,
+      entity_id: entityId,
+      received_at: new Date().toISOString(),
+      read: 0, // Keep as unread
+      synced: 1, // This notification doesn't need to be synced as it's about a sync issue
+      archived: 0,
+      sync_status_message: `UI_SHOWN_${conflictKey}` // Include the conflict key to identify this specific conflict
+    };
+    
+    // Check if we've already notified about this specific conflict in this session
+    const hasExistingConflict = checkExistingConflictNotification(
+      entityData.user_id || '',
+      entityType,
+      entityId,
+      conflictKey
+    );
+    
+    // Only notify if we haven't seen this exact conflict recently (within a day)
+    if (!hasExistingConflict) {
+      // Save to database
+      insertNotification(notification);
+      
+      // Show immediate UI notification
+      showNotification(errorMessage, 'warning', 'Sync Conflict');
+    } else {
+      console.log(`Skipping duplicate conflict notification for ${entityType} ${entityId}`);
+    }
+    
+    // Re-throw the error to be handled by the caller
+    throw error;
+  }
+  throw error;
+};
 
 export const sendUserToServer = async (user: any) => {
   try {
-    console.log("Payload going to /user:", user);
+    
 
     const response = await axios.post(`${API_BASE_URL}/user`, user, {
       headers: {
@@ -25,43 +78,399 @@ export const sendUserToServer = async (user: any) => {
     console.log('✅ User synced:', response.data);
     return response.data;
   } catch (error: any) {
-    console.error('❌ Failed to sync user:', error.response?.data || error.message);
+    if (error.response?.status === 409) {
+      handleConflictError(error, 'user', user);
+    }
     throw error;
   }
 };
 
 // 🧩 REGISTRATION
 export const sendRegistrationToServer = async (registration: any) => {
-  console.log("Payload going to /registration:", registration);
-  return axiosInstance.post('/registration', registration);
+  try {
+    
+    const response = await axiosInstance.post('/registration', registration);
+    console.log('✅ Registration synced:', response.data);
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 409) {
+      handleConflictError(error, 'registration', registration);
+    }
+    throw error;
+  }
 };
 
 // 🧩 LOCATION
 export const sendLocationToServer = async (location: any) => {
-  console.log("Payload going to /location:", location);
-  return axiosInstance.post('/location', location);
+  try {
+    
+    const response = await axiosInstance.post('/location', location);
+    console.log('✅ Location synced:', response.data);
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 409) {
+      handleConflictError(error, 'location', location);
+    }
+    throw error;
+  }
 };
 
 // 🧩 SUPPLY
 export const sendSupplyToServer = async (supply: any) => {
-  console.log("Payload going to /supply:", supply);
-  return axiosInstance.post('/supply', supply);
+  try {
+    
+    const response = await axiosInstance.post('/supply', supply);
+    console.log('✅ Supply synced:', response.data);
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 409) {
+      handleConflictError(error, 'supply', supply);
+    }
+    throw error;
+  }
 };
 
 // 🧩 TASK
 export const sendTaskToServer = async (task: any) => {
-  console.log("Payload going to /task:", task);
-  return axiosInstance.post('/task', task);
+  try {
+    
+    const response = await axiosInstance.post('/task', task);
+    console.log('✅ Task synced:', response.data);
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 409) {
+      handleConflictError(error, 'task', task);
+    }
+    throw error;
+  }
 };
 
 // 🧩 TASK ASSIGNMENT
 export const sendTaskAssignmentToServer = async (assignment: any) => {
-  console.log("Payload going to /task-assignment:", assignment);
-  return axiosInstance.post('/task-assignment', assignment);
+  try {
+    
+    const response = await axiosInstance.post('/task-assignment', assignment);
+    console.log('✅ Task Assignment synced:', response.data);
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 409) {
+      handleConflictError(error, 'task_assignment', assignment);
+    }
+    throw error;
+  }
 };
 
 // 🧩 ALERT
 export const sendAlertToServer = async (alert: any) => {
-  console.log("Payload going to /alert:", alert);
-  return axiosInstance.post('/alert', alert);
+  try {
+    
+    const response = await axiosInstance.post('/alert', alert);
+    console.log('✅ Alert synced:', response.data);
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 409) {
+      handleConflictError(error, 'alert', alert);
+    }
+    throw error;
+  }
+};
+// 🧩 NOTIFICATION
+export const sendNotificationToServer = async (notification: any) => {
+  try {
+    
+    const response = await axiosInstance.post('/notification', notification);
+    console.log('✅ Notification synced:', response.data);
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 409) {
+      handleConflictError(error, 'notification', notification);
+    }
+    throw error;
+  }
+};
+
+// ===============================
+// 🔄 CONFLICT RESOLUTION FUNCTIONS
+// ===============================
+
+interface ConflictResolutionRequest {
+  resolution_strategy: 'client_wins' | 'server_wins' | 'merge' | 'update_data';
+  clientData: any;
+}
+
+interface ConflictResolutionResponse {
+  success: boolean;
+  message: string;
+  status: 'resolved' | 'error';
+  resolvedData?: any;
+}
+
+// Generic conflict resolution function
+const resolveConflict = async (
+  entityType: string,
+  entityId: string,
+  entityIdField: string,
+  request: ConflictResolutionRequest
+): Promise<ConflictResolutionResponse> => {
+  try {
+    const payload = {
+      [entityIdField]: entityId,
+      resolution_strategy: request.resolution_strategy,
+      clientData: request.clientData
+    };
+
+    const response = await axiosInstance.post(`/${entityType}/resolve-conflict`, payload);
+    
+    console.log(`✅ ${entityType} conflict resolved:`, response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error(`❌ ${entityType} conflict resolution failed:`, error.response?.data || error);
+    
+    if (error.response?.data) {
+      return {
+        success: false,
+        message: error.response.data.message || `Failed to resolve ${entityType} conflict`,
+        status: 'error'
+      };
+    }
+    
+    throw error;
+  }
+};
+
+// 🧩 USER CONFLICT RESOLUTION
+export const resolveUserConflict = async (
+  userId: string,
+  strategy: 'client_wins' | 'server_wins' | 'merge' | 'update_data',
+  clientData: any
+): Promise<ConflictResolutionResponse> => {
+  return resolveConflict('user', userId, 'user_id', {
+    resolution_strategy: strategy,
+    clientData
+  });
+};
+
+// 🧩 REGISTRATION CONFLICT RESOLUTION
+export const resolveRegistrationConflict = async (
+  registrationId: string,
+  strategy: 'client_wins' | 'server_wins' | 'merge',
+  clientData: any
+): Promise<ConflictResolutionResponse> => {
+  return resolveConflict('registration', registrationId, 'registration_id', {
+    resolution_strategy: strategy,
+    clientData
+  });
+};
+
+// 🧩 SUPPLY CONFLICT RESOLUTION
+export const resolveSupplyConflict = async (
+  supplyId: string,
+  strategy: 'client_wins' | 'server_wins' | 'merge',
+  clientData: any
+): Promise<ConflictResolutionResponse> => {
+  return resolveConflict('supply', supplyId, 'supply_id', {
+    resolution_strategy: strategy,
+    clientData
+  });
+};
+
+// 🧩 TASK CONFLICT RESOLUTION
+export const resolveTaskConflict = async (
+  taskId: string,
+  strategy: 'client_wins' | 'server_wins' | 'merge',
+  clientData: any
+): Promise<ConflictResolutionResponse> => {
+  return resolveConflict('task', taskId, 'task_id', {
+    resolution_strategy: strategy,
+    clientData
+  });
+};
+
+// 🧩 TASK ASSIGNMENT CONFLICT RESOLUTION
+export const resolveTaskAssignmentConflict = async (
+  assignmentId: string,
+  strategy: 'client_wins' | 'server_wins' | 'merge',
+  clientData: any
+): Promise<ConflictResolutionResponse> => {
+  return resolveConflict('task-assignment', assignmentId, 'assignment_id', {
+    resolution_strategy: strategy,
+    clientData
+  });
+};
+
+// 🧩 LOCATION CONFLICT RESOLUTION
+export const resolveLocationConflict = async (
+  locationId: string,
+  strategy: 'client_wins' | 'server_wins' | 'merge',
+  clientData: any
+): Promise<ConflictResolutionResponse> => {
+  return resolveConflict('location', locationId, 'location_id', {
+    resolution_strategy: strategy,
+    clientData
+  });
+};
+
+// 🧩 ALERT CONFLICT RESOLUTION
+export const resolveAlertConflict = async (
+  alertId: string,
+  strategy: 'client_wins' | 'server_wins' | 'merge',
+  clientData: any
+): Promise<ConflictResolutionResponse> => {
+  return resolveConflict('alert', alertId, 'alert_id', {
+    resolution_strategy: strategy,
+    clientData
+  });
+};
+
+// 🧩 NOTIFICATION CONFLICT RESOLUTION
+export const resolveNotificationConflict = async (
+  notificationId: string,
+  strategy: 'client_wins' | 'server_wins' | 'merge',
+  clientData: any
+): Promise<ConflictResolutionResponse> => {
+  return resolveConflict('notification', notificationId, 'notification_id', {
+    resolution_strategy: strategy,
+    clientData
+  });
+};
+
+// 🔄 UNIFIED CONFLICT RESOLUTION FUNCTION
+// This function automatically determines the correct resolver based on entity type
+export const resolveEntityConflict = async (
+  entityType: string,
+  entityId: string,
+  strategy: 'client_wins' | 'server_wins' | 'merge' | 'update_data',
+  clientData: any
+): Promise<ConflictResolutionResponse> => {
+  switch (entityType.toLowerCase()) {
+    case 'user':
+      return resolveUserConflict(entityId, strategy, clientData);
+    
+    case 'registration':
+      return resolveRegistrationConflict(entityId, strategy as any, clientData);
+    
+    case 'supply':
+      return resolveSupplyConflict(entityId, strategy as any, clientData);
+    
+    case 'task':
+      return resolveTaskConflict(entityId, strategy as any, clientData);
+    
+    case 'task_assignment':
+      return resolveTaskAssignmentConflict(entityId, strategy as any, clientData);
+    
+    case 'location':
+      return resolveLocationConflict(entityId, strategy as any, clientData);
+    
+    case 'alert':
+      return resolveAlertConflict(entityId, strategy as any, clientData);
+    
+    case 'notification':
+      return resolveNotificationConflict(entityId, strategy as any, clientData);
+    
+    default:
+      throw new Error(`Unsupported entity type: ${entityType}`);
+  }
+};
+
+// === PULL FUNCTIONS - Fetch data from server ===
+
+// Pull individual entity types
+export const pullUsersFromServer = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`/user/${userId}/pull`);
+    console.log('✅ Users pulled from server:', response.data.data.length, 'items');
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error pulling users:', error.message);
+    throw error;
+  }
+};
+
+export const pullLocationsFromServer = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`/location/${userId}/pull`);
+    console.log('✅ Locations pulled from server:', response.data.data.length, 'items');
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error pulling locations:', error.message);
+    throw error;
+  }
+};
+
+export const pullSuppliesFromServer = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`/supply/${userId}/pull`);
+    console.log('✅ Supplies pulled from server:', response.data.data.length, 'items');
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error pulling supplies:', error.message);
+    throw error;
+  }
+};
+
+export const pullTasksFromServer = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`/task/${userId}/pull`);
+    console.log('✅ Tasks pulled from server:', response.data.data.length, 'items');
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error pulling tasks:', error.message);
+    throw error;
+  }
+};
+
+export const pullRegistrationsFromServer = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`/registration/${userId}/pull`);
+    console.log('✅ Registrations pulled from server:', response.data.data.length, 'items');
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error pulling registrations:', error.message);
+    throw error;
+  }
+};
+
+export const pullTaskAssignmentsFromServer = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`/task-assignment/${userId}/pull`);
+    console.log('✅ Task assignments pulled from server:', response.data.data.length, 'items');
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error pulling task assignments:', error.message);
+    throw error;
+  }
+};
+
+export const pullAlertsFromServer = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`/alert/${userId}/pull`);
+    console.log('✅ Alerts pulled from server:', response.data.data.length, 'items');
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error pulling alerts:', error.message);
+    throw error;
+  }
+};
+
+export const pullNotificationsFromServer = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`/notification/${userId}/pull`);
+    console.log('✅ Notifications pulled from server:', response.data.data.length, 'items');
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error pulling notifications:', error.message);
+    throw error;
+  }
+};
+
+// Pull all data at once (bulk pull)
+export const pullAllDataFromServer = async (userId: string) => {
+  try {
+    const response = await axiosInstance.get(`/bulk/${userId}/pull`);
+    console.log('✅ All data pulled from server:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error pulling all data:', error.message);
+    throw error;
+  }
 };

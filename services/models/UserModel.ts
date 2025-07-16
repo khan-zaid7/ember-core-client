@@ -201,21 +201,23 @@ export const updateUserOffline = async (user: {
     [name, email, phone_number, role, user_id]
   );
 
-  const existingSync = db.getFirstSync(
-    `SELECT sync_id FROM sync_queue WHERE entity_id = ? AND entity_type = 'user'`,
-    [user_id]
+  // Always add a new sync queue entry for updates
+  db.runSync(
+    `INSERT INTO sync_queue (sync_id, entity_type, entity_id, status, retry_count, created_by)
+     VALUES (?, 'user', ?, 'pending', 0, ?)`,
+    [generateUUID(), user_id, user_id]
   );
-  if (!existingSync) {
-    db.runSync(
-      `INSERT INTO sync_queue (sync_id, entity_type, entity_id, status, retry_count, created_by)
-       VALUES (?, 'user', ?, 'pending', 0, ?)`,
-      [generateUUID(), user_id, user_id]
-    );
-  }
 
   return true;
 };
 
 export const getUserById = (user_id: string) => {
   return db.getFirstSync<any>(`SELECT * FROM users WHERE user_id = ?`, [user_id]);
+};
+
+export const getAllFieldworkers = (): { user_id: string; name: string; phone_number: string }[] => {
+  return db.getAllSync(
+    `SELECT user_id, name, phone_number FROM users WHERE role = ?`,
+    ['fieldworker']
+  );
 };

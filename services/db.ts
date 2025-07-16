@@ -29,6 +29,7 @@ export const initDatabase = () => {
       gender TEXT,
       location_id TEXT,
       timestamp TEXT,
+      created_at TEXT,
       updated_at TEXT,
       synced INTEGER DEFAULT 0,
       sync_status_message TEXT
@@ -45,6 +46,8 @@ export const initDatabase = () => {
       updated_at TEXT,
       synced INTEGER DEFAULT 0,
       status TEXT,
+      barcode TEXT UNIQUE,
+      sku TEXT UNIQUE,
       sync_status_message TEXT
     );
 
@@ -112,6 +115,7 @@ export const initDatabase = () => {
       created_by TEXT,
     conflict_field TEXT,     
       latest_data TEXT,
+      allowed_strategies TEXT,
       updated_at TEXT     
     );
 
@@ -124,6 +128,22 @@ export const initDatabase = () => {
       phone_number TEXT,
       created_at TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      notification_id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL,
+      title TEXT,
+      message TEXT NOT NULL,
+      type TEXT,
+      entity_type TEXT,
+      entity_id TEXT,
+      received_at TEXT,
+      read INTEGER DEFAULT 0,
+      synced INTEGER DEFAULT 0,
+      sync_status_message TEXT,
+      archived INTEGER DEFAULT 0,
+      updated_at TEXT
+    );
   `);
 };
 
@@ -131,7 +151,6 @@ export const verifyTables = () => {
   const result = db.getAllSync<{ name: string }>(
     `SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;`
   );
-  console.log("🧩 Tables in DB:", result.map(row => row.name));
 };
 
 export const resetDatabase = () => {
@@ -145,6 +164,7 @@ export const resetDatabase = () => {
     'alerts',
     'sync_queue',
     'sessions',
+    'notifications',
   ];
 
   db.execSync(
@@ -158,4 +178,23 @@ export const resetDatabase = () => {
   // Optional: re-initialize the schema
   initDatabase();
   console.log('✅ Database reset and re-initialized.');
+};
+
+export const migrateDatabase = () => {
+  try {
+    // Check if created_at column exists in registrations table
+    const tableInfo = db.getAllSync<{ name: string }>(
+      `PRAGMA table_info(registrations);`
+    );
+    
+    const hasCreatedAt = tableInfo.some(column => column.name === 'created_at');
+    
+    if (!hasCreatedAt) {
+      console.log('🔄 Adding created_at column to registrations table...');
+      db.execSync(`ALTER TABLE registrations ADD COLUMN created_at TEXT;`);
+      console.log('✅ Migration completed: added created_at column to registrations');
+    }
+  } catch (error) {
+    console.error('❌ Database migration failed:', error);
+  }
 };

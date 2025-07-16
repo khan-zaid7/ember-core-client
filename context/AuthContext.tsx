@@ -38,11 +38,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     (async () => {
       try {
+        console.log('🔍 AuthContext: Checking for existing session...');
         const session = await getSessionFromDB();
-        if (session) setUser(session);
+        if (session) {
+          console.log('✅ AuthContext: Session found:', session.user_id);
+          setUser(session);
+        } else {
+          console.log('⚠️ AuthContext: No session found');
+        }
       } catch (err) {
         console.log('🛑 Error loading session:', err);
       } finally {
+        console.log('🏁 AuthContext: Loading complete');
         setLoading(false);
       }
     })();

@@ -36,8 +36,8 @@ export const insertRegistrationOffline = (form: {
 
   // Insert into registrations
   db.runSync(
-    `INSERT INTO registrations (registration_id, user_id, person_name, age, gender, location_id, timestamp, synced, sync_status_message)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO registrations (registration_id, user_id, person_name, age, gender, location_id, timestamp, synced, sync_status_message, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       registration_id,
       user_id,
@@ -47,7 +47,8 @@ export const insertRegistrationOffline = (form: {
       location_id,
       timestamp,
       0, // synced
-      '' // sync_status_message
+      '', // sync_status_message
+      new Date().toISOString() // updated_at
     ]
   );
 
@@ -70,7 +71,7 @@ export const insertRegistrationOffline = (form: {
 
 // models/registrationModel.ts
 
-export const getAllRegistrations = () => {
+export const getAllRegistrations = (userId: string) => {
   return db.getAllSync<{
     registration_id: string;
     person_name: string;
@@ -78,7 +79,15 @@ export const getAllRegistrations = () => {
     timestamp: string;
     gender: string;
   }>(
-    `SELECT registration_id, person_name, synced, gender, timestamp FROM registrations ORDER BY timestamp DESC`
+    `SELECT registration_id, person_name, synced, gender, timestamp FROM registrations WHERE user_id = ? ORDER BY timestamp DESC`,
+    [userId]
+  );
+};
+
+export const getRegistrationById = (registration_id: string) => {
+  return db.getFirstSync(
+    'SELECT * FROM registrations WHERE registration_id = ?',
+    [registration_id]
   );
 };
 
