@@ -41,7 +41,7 @@ export const useSyncTrigger = () => {
         // Set up network listener
         const unsubscribe = NetInfo.addEventListener(state => {
             const wasOffline = !isOnline;
-            isOnline = !!(state.isConnected && state.isInternetReachable);
+            isOnline = !!(state.isConnected && state.isInternetReachable !== false);
             
             // Trigger sync when we go from offline to online
             if (wasOffline && isOnline && user.user_id) {
@@ -59,7 +59,7 @@ export const useSyncTrigger = () => {
         
         // Initial sync on mount (only for first instance)
         NetInfo.fetch().then(state => {
-            isOnline = !!(state.isConnected && state.isInternetReachable);
+            isOnline = !!(state.isConnected && state.isInternetReachable !== false);
             if (isOnline) {
                 runSync();
             }

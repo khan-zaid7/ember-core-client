@@ -9,6 +9,7 @@ import api from '@/src/utils/axiosConfig';
 import EmberLogo from '@/components/EmberLogo';
 import { FormInput } from '@/components/FormInput';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { updateUserPassword } from '@/services/models/UserModel';
 
 
 export default function ResetPassword() {
@@ -47,7 +48,25 @@ export default function ResetPassword() {
       });
 
       if (response.status === 200) {
-        router.replace('/authentication/login');
+        // Update password locally after successful server update
+        try {
+          updateUserPassword(email, newPassword);
+          console.log('✅ Password updated locally for user:', email);
+        } catch (localError) {
+          console.warn('⚠️ Failed to update password locally:', localError);
+          // Don't fail the entire process if local update fails
+        }
+
+        Alert.alert(
+          'Success!', 
+          'Your password has been reset successfully. You can now log in with your new password.',
+          [
+            {
+              text: 'OK',
+              onPress: () => router.replace('/authentication/login')
+            }
+          ]
+        );
       }
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Error resetting password.';

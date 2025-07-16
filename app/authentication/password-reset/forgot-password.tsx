@@ -13,12 +13,26 @@ import EmberLogo from '@/components/EmberLogo';
 import { FormInput } from '@/components/FormInput';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import SuccessAlert from '@/components/SuccessAlert';
+import { db } from '@/services/db';
+import { getPendingSyncItems } from '@/services/models/SyncQueueModel';
+import NetInfo from '@react-native-community/netinfo';
+import { useEffect } from 'react';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+
+  // Check network connectivity
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsOnline(!!(state.isConnected && state.isInternetReachable !== false));
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const validateEmail = (value: string) => {
     const re = /\S+@\S+\.\S+/;
@@ -31,11 +45,42 @@ export default function ForgotPassword() {
       return;
     }
 
+    // Check if user is offline
+    if (!isOnline) {
+      setError('You are offline. Forgot password requires internet access.');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setSuccess(false);
 
     try {
+      // Check if user exists locally and their sync status
+      const normalizedEmail = email.trim().toLowerCase();
+      const localUser = db.getFirstSync<any>(
+        `SELECT user_id, synced FROM users WHERE email = ?`,
+        [normalizedEmail]
+      );
+
+      if (localUser) {
+        // User exists locally - check if they are synced to server
+        if (localUser.synced === 0) {
+          // User is not synced to server yet
+          const pendingSyncItems = getPendingSyncItems(localUser.user_id);
+          const userSyncPending = pendingSyncItems.some(
+            item => item.entity_type === 'user' && item.entity_id === localUser.user_id
+          );
+
+          if (userSyncPending) {
+            setError('You are not synced to the server. To use forgot password, please sync your account first.');
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
+      // Proceed with normal forgot password flow
       const response = await api.post('/forgot-password', { email });
 
       console.log('✅ OTP sent for email:', email);

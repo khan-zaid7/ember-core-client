@@ -215,6 +215,39 @@ export const getUserById = (user_id: string) => {
   return db.getFirstSync<any>(`SELECT * FROM users WHERE user_id = ?`, [user_id]);
 };
 
+export const getUserByEmail = (email: string) => {
+  const normalizedEmail = email.trim().toLowerCase();
+  return db.getFirstSync<any>(`SELECT * FROM users WHERE email = ?`, [normalizedEmail]);
+};
+
+export const updateUserPassword = (email: string, newPassword: string) => {
+  const normalizedEmail = email.trim().toLowerCase();
+  const updated_at = new Date().toISOString();
+  
+  // Update password in the local database
+  const result = db.runSync(
+    `UPDATE users SET password = ?, updated_at = ?, synced = 0 WHERE email = ?`,
+    [newPassword, updated_at, normalizedEmail]
+  );
+
+  if (result.changes === 0) {
+    throw new Error('User not found or password not updated');
+  }
+
+  // Get the updated user to add to sync queue
+  const user = getUserByEmail(normalizedEmail);
+  if (user) {
+    // Add to sync queue since password was updated
+    db.runSync(
+      `INSERT INTO sync_queue (sync_id, entity_type, entity_id, status, retry_count, created_by)
+       VALUES (?, 'user', ?, 'pending', 0, ?)`,
+      [generateUUID(), user.user_id, user.user_id]
+    );
+  }
+
+  return result.changes > 0;
+};
+
 export const getAllFieldworkers = (): { user_id: string; name: string; phone_number: string }[] => {
   return db.getAllSync(
     `SELECT user_id, name, phone_number FROM users WHERE role = ?`,

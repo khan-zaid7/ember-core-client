@@ -17,7 +17,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     '/authentication/register',
     '/authentication/password-reset/forgot-password',
     '/authentication/password-reset/reset-password',
-    '/authentication/password-reset/verify-opt',
+    '/authentication/password-reset/verify-otp',
   ];
 
   // Define common routes for all roles
