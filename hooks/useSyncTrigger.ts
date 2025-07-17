@@ -1,6 +1,6 @@
 import NetInfo from '@react-native-community/netinfo';
 import { useEffect, useRef, useCallback } from 'react';
-import { processSyncQueue } from '@/services/sync/syncQueueProcessor';
+import { processSyncQueue, setAuthContextUpdater } from '@/services/sync/syncQueueProcessor';
 import { useAuth } from '@/context/AuthContext';
 
 // Fix for Timer type in React Native
@@ -11,7 +11,7 @@ let syncTriggerInstanceCount = 0;
 let globalIntervalRef: TimerType | null = null;
 
 export const useSyncTrigger = () => {
-    const { user, loading } = useAuth();
+    const { user, loading, updateUserId } = useAuth();
     const intervalRef = useRef<TimerType | null>(null);
     const instanceId = useRef(++syncTriggerInstanceCount);
 
@@ -27,6 +27,9 @@ export const useSyncTrigger = () => {
 
     useEffect(() => {
         if (loading || !user?.user_id) return;
+        
+        // Set up the auth context updater for ID mapping
+        setAuthContextUpdater(updateUserId);
         
         // Only allow the first instance to set up intervals and network listeners
         if (instanceId.current > 1) {
