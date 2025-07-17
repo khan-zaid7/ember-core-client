@@ -116,7 +116,7 @@ export default function Register() {
     if (!validateForm()) return;
 
     try {
-      const user_id = insertUserOffline(form);
+      const user_id = await insertUserOffline(form);
       Alert.alert('Saved Offline', `User stored locally with ID:\n${user_id}`);
       router.push('/authentication/login');
     } catch (error: any) {

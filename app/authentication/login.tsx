@@ -124,7 +124,7 @@ export default function Login() {
     if (!validateForm()) return;
 
     try {
-      const user = loginUserOffline(form);
+      const user = await loginUserOffline(form);
       await login(user);
 
 
