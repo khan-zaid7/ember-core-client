@@ -10,7 +10,7 @@ export type AuthUser = {
   name: string;
   email: string;
   role: string;
-  phone_number: string;
+  phone_number: string | null;
 };
 
 type AuthContextType = {
