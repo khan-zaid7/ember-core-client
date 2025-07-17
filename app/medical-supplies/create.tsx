@@ -17,8 +17,8 @@ interface SupplyForm {
   expiryDate: string;
   locationId: string;
   timestamp: string;
-  barcode?: string;
-  sku?: string;
+  barcode: string;
+  sku: string;
 }
 
 interface FormErrors {
