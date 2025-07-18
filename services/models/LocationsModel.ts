@@ -122,3 +122,108 @@ export const getLocationById = (location_id: string) => {
     [location_id]
   );
 };
+
+
+export interface Location {
+  location_id: string;
+  user_id: string;
+  name: string;
+  type?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  added_at: string;
+  updated_at: string;
+  description?: string | null;
+  synced: number;
+  sync_status_message?: string | null;
+  [key: string]: any;
+}
+
+export const reconcileLocationAfterServerUpdate = async (serverLocationData: Location) => {
+  const {
+    location_id,
+    user_id,
+    name,
+    type = null,
+    latitude = null,
+    longitude = null,
+    added_at,
+    updated_at,
+    description = null,
+    sync_status_message = null,
+  } = serverLocationData;
+
+  const localLocation = db.getFirstSync<Location>(
+    `SELECT * FROM locations WHERE location_id = ?`,
+    [location_id]
+  );
+
+  if (localLocation) {
+    if (new Date(localLocation.updated_at) > new Date(updated_at)) {
+      console.log(`⚠️ Local location ${location_id} is newer than server data. Skipping update.`);
+      return;
+    }
+
+    db.runSync(
+      `UPDATE locations SET
+        user_id = ?,
+        name = ?,
+        type = ?,
+        latitude = ?,
+        longitude = ?,
+        added_at = ?,
+        updated_at = ?,
+        description = ?,
+        synced = 1,
+        sync_status_message = ?
+       WHERE location_id = ?`,
+      [
+        user_id,
+        name.trim(),
+        type,
+        latitude,
+        longitude,
+        added_at,
+        updated_at,
+        description?.trim() || null,
+        sync_status_message,
+        location_id,
+      ]
+    );
+
+    console.log(`✅ Local location ${location_id} updated and marked synced.`);
+
+    // Uncomment if your system tracks ID changes and you want to map old->new IDs
+    /*
+    if (localLocation.location_id !== location_id) {
+      const mappingSuccess = await handleIdMapping('location', localLocation.location_id, location_id);
+      if (mappingSuccess) {
+        console.log(`✅ ID mapping for location ${localLocation.location_id} -> ${location_id} completed successfully.`);
+      } else {
+        console.error(`❌ ID mapping for location ${localLocation.location_id} -> ${location_id} failed.`);
+      }
+    }
+    */
+  } else {
+    db.runSync(
+      `INSERT INTO locations (
+        location_id, user_id, name, type, latitude, longitude, added_at, updated_at, description, synced, sync_status_message
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        location_id,
+        user_id,
+        name.trim(),
+        type,
+        latitude,
+        longitude,
+        added_at,
+        updated_at,
+        description?.trim() || null,
+        1, // synced
+        sync_status_message,
+      ]
+    );
+
+    console.log(`➕ New local location ${location_id} inserted from server data.`);
+  }
+};

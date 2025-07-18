@@ -41,7 +41,6 @@ export default function TasksList() {
         try {
           const createdTasks = await getCreatedTasks(user.user_id);
           setTasks(createdTasks);
-          console.log('Created:', createdTasks);
         } catch (err) {
           setTasks([]);
         } finally {

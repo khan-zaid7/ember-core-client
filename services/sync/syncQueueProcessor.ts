@@ -3,6 +3,7 @@ import { markEntitySynced } from '@/services/models/GenericModel';
 import { syncEntity } from './entityDispatchers';
 import { db } from '@/services/db';
 import { getSessionFromDB, saveSessionToDB } from '@/services/models/SessionModel';
+import { downsyncAllDataForUser } from './downSyncQueueProcessor';
 
 // Import for AuthContext updates
 let authContextUpdateFunction: ((newUserId: string) => Promise<void>) | null = null;
@@ -16,7 +17,7 @@ export const setAuthContextUpdater = (updateFunction: (newUserId: string) => Pro
  * Handle ID mapping when server returns a different ID than client
  * This implements Option A - immediate ID updates
  */
-const handleIdMapping = async (entityType: string, clientId: string, serverId: string) => {
+export const handleIdMapping = async (entityType: string, clientId: string, serverId: string) => {
   try {
     console.log(`🔄 Processing ID mapping: ${entityType} ${clientId} -> ${serverId}`);
     
@@ -192,89 +193,106 @@ const updateSyncQueueReferences = async (entityType: string, oldId: string, newI
 
 // Singleton pattern to prevent multiple sync instances
 let isSyncRunning = false;
-let syncPromise: Promise<void> | null = null;
+let syncPromise: Promise<boolean> | null = null;
 
 // Accept userId as a parameter
 export const processSyncQueue = async (userId: string): Promise<void> => {
-  // Check if sync is already running
   if (isSyncRunning) {
     console.log('⏳ Sync already in progress, waiting for completion...');
     if (syncPromise) {
-      await syncPromise; // Wait for existing sync to complete
+      const success = await syncPromise;
+      if (success) {
+        console.log('✅ Sync (waited) successful, running downsync...');
+        await downsyncAllDataForUser(userId);
+      } else {
+        console.warn('⚠️ Sync (waited) failed, skipping downsync.');
+      }
     }
     return;
   }
 
-  // Set sync running flag
   isSyncRunning = true;
-  
-  // Create the sync promise
   syncPromise = performSync(userId);
-  
+
   try {
-    await syncPromise;
+    const success = await syncPromise;
+    if (success) {
+      console.log('✅ Sync successful, running downsync...');
+      await downsyncAllDataForUser(userId);
+    } else {
+      console.warn('⚠️ Sync failed or had conflict, skipping downsync.');
+    }
   } finally {
-    // Always reset flags when done
     isSyncRunning = false;
     syncPromise = null;
   }
 };
-
 // The actual sync logic separated into its own function
-const performSync = async (userId: string): Promise<void> => {
+export const performSync = async (userId: string): Promise<boolean> => {
   try {
     const pendingItems = await getPendingSyncItems(userId);
 
-    // ✅ Enforce order: sync parent entities first
+    // Priority order for syncing entities
     const priorityOrder = ['user', 'location', 'registration', 'supply', 'task', 'task_assignment', 'alert'];
 
-    const sortedItems = pendingItems.sort((a, b) => {
-      return priorityOrder.indexOf(a.entity_type) - priorityOrder.indexOf(b.entity_type);
-    });
-    
-    const temp = await getAllSyncItems(userId);
+    const sortedItems = pendingItems.sort(
+      (a, b) => priorityOrder.indexOf(a.entity_type) - priorityOrder.indexOf(b.entity_type)
+    );
+
+    let allSuccess = true; // Track overall sync success
+
     for (const item of sortedItems) {
       try {
         const result = await syncEntity(item.entity_type, item.entity_id);
 
         if (result.success) {
-          // Handle ID mapping if required
+          // Handle ID mapping if needed
           if (result.idMappingRequired && result.clientId && result.serverId) {
             const mappingSuccess = await handleIdMapping(
-              item.entity_type, 
-              result.clientId!, // Type assertion - we checked above
-              result.serverId!  // Type assertion - we checked above
+              item.entity_type,
+              result.clientId,
+              result.serverId
             );
-            
+
             if (!mappingSuccess) {
               console.warn(`⚠️ ID mapping failed but sync succeeded for ${item.entity_type} ${item.entity_id}`);
             }
           }
-          
+
           await markSyncSuccess(item.sync_id);
           await markEntitySynced(item.entity_type, item.entity_id);
+
         } else if (result.status === 409 && result.conflict_field && result.latest_data) {
-          // Store ID mapping info in conflict for later resolution
+          // Conflict - mark conflict and treat as failure for downsync logic
           await makeConflict(
-            item.sync_id, 
-            result.conflict_field!, // Type assertion - we checked above
-            result.latest_data, 
+            item.sync_id,
+            result.conflict_field,
+            result.latest_data,
             result.allowed_strategies
           );
-          
-          // Log ID mapping info for manual tracking (for now)
+
           if (result.idMappingRequired && result.clientId && result.serverId) {
             console.log(`📝 Conflict with ID mapping: ${result.entityType} ${result.clientId} -> ${result.serverId}`);
           }
+
+          allSuccess = false; // conflict means not fully successful
+
         } else {
           await markSyncFailed(item.sync_id);
+          allSuccess = false; // failure means overall failure
         }
+
       } catch (error) {
         console.error(`❌ Sync failed for ${item.entity_type} (${item.entity_id}):`, error);
         await markSyncFailed(item.sync_id);
+        allSuccess = false; // error means overall failure
       }
     }
+
+    return allSuccess;
+
   } catch (error) {
     console.error('❌ Sync Queue Processing failed:', error);
+    return false; // error means failure
   }
 };

@@ -3,12 +3,13 @@
 import { generateUUID } from '@/utils/generateUUID';
 import { db } from '../db';
 import * as FileSystem from 'expo-file-system';
+import { handleIdMapping } from '../sync/syncQueueProcessor';
 // Removed all bcrypt and expo-random imports and related code
 
 const allowedRoles = ['admin', 'fieldworker', 'volunteer', 'coordinator'];
 
 // Define the User interface for better type safety
-interface User {
+export interface User {
   user_id: string; // user_id is now required for server-provided data
   name: string;
   email: string;
@@ -310,8 +311,20 @@ export const getAllFieldworkers = (): { user_id: string; name: string; phone_num
   );
 };
 
+
 export const reconcileUserAfterServerUpdate = async (serverUserData: User) => {
-  const { user_id, email, password, name, phone_number, role, created_at, updated_at, image_url, location } = serverUserData;
+  const {
+    user_id,
+    email,
+    password,
+    name,
+    phone_number,
+    role,
+    created_at,
+    updated_at,
+    image_url,
+    location
+  } = serverUserData;
 
   const normalizedEmail = email.toLowerCase().trim();
   const normalizedPhoneNumber = phone_number?.trim() || null;
@@ -320,7 +333,10 @@ export const reconcileUserAfterServerUpdate = async (serverUserData: User) => {
   const normalizedLocation = location?.trim() || null;
   const normalizedImageUrl = image_url?.trim() || null;
 
-  const localUser = db.getFirstSync<User>(`SELECT * FROM users WHERE email = ?`, [normalizedEmail]);
+  const localUser = db.getFirstSync<User>(
+    `SELECT * FROM users WHERE email = ?`,
+    [normalizedEmail]
+  );
 
   if (localUser) {
     console.log(`🔄 Reconciling existing local user ${localUser.user_id} with server data for email: ${normalizedEmail}`);
@@ -330,12 +346,8 @@ export const reconcileUserAfterServerUpdate = async (serverUserData: User) => {
     const updateClauses: string[] = [];
     const updateValues: (string | number | null)[] = [];
 
-    updateClauses.push('user_id = ?'); updateValues.push(user_id);
     updateClauses.push('name = ?'); updateValues.push(normalizedName);
     updateClauses.push('email = ?'); updateValues.push(normalizedEmail);
-    // IMPORTANT: Assuming 'password' from serverUserData is a HASHED password
-    // and you want to store this HASHED version when reconciling from the server.
-    updateClauses.push('password = ?'); updateValues.push(password);
     updateClauses.push('role = ?'); updateValues.push(normalizedRole);
     updateClauses.push('phone_number = ?'); updateValues.push(normalizedPhoneNumber);
     updateClauses.push('image_url = ?'); updateValues.push(normalizedImageUrl);
@@ -344,31 +356,55 @@ export const reconcileUserAfterServerUpdate = async (serverUserData: User) => {
     updateClauses.push('updated_at = ?'); updateValues.push(updated_at);
     updateClauses.push('synced = 1');
 
+    // Only update password if provided
+    if (typeof password === 'string' && password.trim() !== '') {
+      updateClauses.push('password = ?');
+      updateValues.push(password);
+    } else {
+      console.log(`⚠️ No password in server data for ${normalizedEmail} — keeping local password.`);
+      updateClauses.push('password = ?');
+      updateValues.push(localUser.password); // fallback to local
+    }
+
+    // Optionally update user_id if it's different
+    if (oldLocalUserId === user_id) {
+      updateClauses.push('user_id = ?');
+      updateValues.push(user_id);
+    }
+
     db.runSync(
       `UPDATE users SET ${updateClauses.join(', ')} WHERE user_id = ?`,
       [...updateValues, oldLocalUserId] as (string | number | null)[]
     );
-    console.log(`✅ Local user ${oldLocalUserId} updated and synced to server ID ${user_id}.`);
+
+    console.log(`✅ Local user ${oldLocalUserId} updated and synced.`);
 
     if (oldLocalUserId !== user_id) {
-      console.log(`Updating sync_queue for user_id change: ${oldLocalUserId} -> ${user_id}`);
-      db.runSync(
-        `UPDATE sync_queue SET entity_id = ?, created_by = ? WHERE entity_id = ? AND entity_type = 'user'`,
-        [user_id, user_id, oldLocalUserId]
-      );
-      console.log(`✅ Sync queue and other user-related entities updated to new user_id: ${user_id}`);
+      console.log(`🔁 Detected user_id change: ${oldLocalUserId} -> ${user_id}. Initiating ID mapping.`);
+      const mappingSuccess = await handleIdMapping('user', oldLocalUserId, user_id);
+      if (mappingSuccess) {
+        console.log(`✅ ID mapping for user ${oldLocalUserId} -> ${user_id} completed successfully.`);
+      } else {
+        console.error(`❌ ID mapping for user ${oldLocalUserId} -> ${user_id} failed.`);
+      }
     }
 
   } else {
     console.log(`➕ Inserting new local user from server data for email: ${normalizedEmail}`);
+
+    // Prevent inserting null/undefined password
+    const safePassword = (typeof password === 'string' && password.trim() !== '')
+      ? password
+      : 'default123'; // or throw error if password is mandatory
+
     db.runSync(
       `INSERT INTO users (user_id, name, email, password, phone_number, role, created_at, updated_at, image_url, location, synced)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         user_id,
         normalizedName,
         normalizedEmail,
-        password, // Server password is still expected to be hashed
+        safePassword,
         normalizedPhoneNumber,
         normalizedRole,
         created_at,
@@ -378,6 +414,65 @@ export const reconcileUserAfterServerUpdate = async (serverUserData: User) => {
         1,
       ] as (string | number | null)[]
     );
+
     console.log(`✅ New local user ${user_id} inserted from server data.`);
   }
+};
+
+/**
+ * Insert a user directly with all fields specified (bypasses validation and UUID generation).
+ * Useful for inserting server-provided user data or bulk inserts.
+ * 
+ * @param user Complete User object with all required fields.
+ * @returns user_id string inserted.
+ */
+export const insertUserDirectly = async (user: User): Promise<string> => {
+  const {
+    user_id,
+    name,
+    email,
+    password,
+    role,
+    phone_number,
+    image_url,
+    location,
+    created_at,
+    updated_at,
+    synced
+  } = user;
+
+  // Basic minimal checks (optional, can remove or add more if needed)
+  if (!user_id || !name || !email || !password || !role || !created_at || !updated_at) {
+    throw new Error('Missing required user fields');
+  }
+
+  // Insert directly without additional validation or UUID generation
+  db.runSync(
+    `INSERT INTO users (user_id, name, email, password, phone_number, role, created_at, updated_at, image_url, location, synced)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      user_id,
+      name,
+      email,
+      password,
+      phone_number,
+      role,
+      created_at,
+      updated_at,
+      image_url,
+      location,
+      synced ? 1 : 0
+    ] as (string | number | null)[]
+  );
+
+  // Add to sync queue for initial sync if synced is false (0)
+  if (!synced) {
+    db.runSync(
+      `INSERT INTO sync_queue (sync_id, entity_type, entity_id, status, retry_count, created_by)
+       VALUES (?, 'user', ?, 'pending', 0, ?)`,
+      [generateUUID(), user_id, user_id]
+    );
+  }
+
+  return user_id;
 };

@@ -1,5 +1,6 @@
 import { generateUUID } from '@/utils/generateUUID';
 import { db } from '../db';
+import { handleIdMapping } from '../sync/syncQueueProcessor';
 
 export const insertSupplyOffline = (form: {
   userId: string;
@@ -109,7 +110,7 @@ export const getAllSupplies = (userId: string) => {
   );
 };
 
-interface Supply {
+export interface Supply {
   supply_id: string;
   user_id: string;
   item_name: string;
@@ -139,4 +140,110 @@ export const getSupplyById = (supply_id: string): Supply | null => {
   }
   
   return supply;
+};
+export const reconcileSupplyAfterServerUpdate = async (
+  serverSupplyData: Supply,
+  oldLocalSupplyId?: string
+) => {
+  const {
+    supply_id,
+    user_id,
+    item_name,
+    quantity,
+    expiry_date,
+    location_id,
+    timestamp,
+    updated_at,
+    status,
+    barcode,
+    sku,
+    sync_status_message,
+  } = serverSupplyData;
+
+  const localSupply = db.getFirstSync<Supply>(
+    `SELECT * FROM supplies WHERE supply_id = ?`,
+    [supply_id]
+  );
+
+  // Use fallbacks to ensure valid Date objects
+  const serverUpdatedAt = updated_at
+    ? new Date(updated_at)
+    : new Date(0); // fallback to epoch if missing
+
+  const localUpdatedAt = localSupply
+    ? localSupply.updated_at
+      ? new Date(localSupply.updated_at)
+      : localSupply.timestamp
+      ? new Date(localSupply.timestamp)
+      : new Date(0)
+    : new Date(0);
+
+  if (localSupply) {
+    if (serverUpdatedAt.getTime() > localUpdatedAt.getTime()) {
+      db.runSync(
+        `UPDATE supplies SET
+          user_id = ?,
+          item_name = ?,
+          quantity = ?,
+          expiry_date = ?,
+          location_id = ?,
+          timestamp = ?,
+          updated_at = ?,
+          status = ?,
+          barcode = ?,
+          sku = ?,
+          synced = 1,
+          sync_status_message = ?
+        WHERE supply_id = ?`,
+        [
+          user_id,
+          item_name,
+          quantity,
+          expiry_date,
+          location_id,
+          timestamp,
+          updated_at || new Date().toISOString(),
+          status,
+          barcode || null,
+          sku || null,
+          sync_status_message || '',
+          supply_id,
+        ]
+      );
+      console.log(`✅ Local supply ${supply_id} updated and synced.`);
+    } else {
+      console.log(`ℹ️ Local supply ${supply_id} is newer or same, skipping update.`);
+    }
+  } else {
+    db.runSync(
+      `INSERT INTO supplies (
+        supply_id, user_id, item_name, quantity, expiry_date,
+        location_id, timestamp, updated_at, status, barcode, sku, synced, sync_status_message
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+      [
+        supply_id,
+        user_id,
+        item_name,
+        quantity,
+        expiry_date,
+        location_id,
+        timestamp,
+        updated_at || new Date().toISOString(),
+        status,
+        barcode || null,
+        sku || null,
+        sync_status_message || '',
+      ]
+    );
+    console.log(`➕ New local supply ${supply_id} inserted from server data.`);
+  }
+
+  if (oldLocalSupplyId && oldLocalSupplyId !== supply_id) {
+    const mappingSuccess = await handleIdMapping('supply', oldLocalSupplyId, supply_id);
+    if (mappingSuccess) {
+      console.log(`✅ ID mapping for supply ${oldLocalSupplyId} -> ${supply_id} completed successfully.`);
+    } else {
+      console.error(`❌ ID mapping for supply ${oldLocalSupplyId} -> ${supply_id} failed.`);
+    }
+  }
 };
