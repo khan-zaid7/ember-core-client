@@ -9,6 +9,8 @@ import api from '@/src/utils/axiosConfig';
 import EmberLogo from '@/components/EmberLogo';
 import { FormInput } from '@/components/FormInput';
 import LoadingSpinner from '@/components/LoadingSpinner';
+// Import the new reconcile function instead of updateUserPassword
+import { reconcileUserAfterServerUpdate } from '@/services/models/UserModel'; // 
 
 
 export default function ResetPassword() {
@@ -40,14 +42,41 @@ export default function ResetPassword() {
 
     try {
       setLoading(true);
+      // Send the request to the backend to reset the password
       const response = await api.post('/reset-password', {
-        "email":email,
-        "password":newPassword,
+        "email": email,
+        "password": newPassword,
         "confirm_password": confirmPassword,
       });
 
       if (response.status === 200) {
-        router.replace('/authentication/login');
+        // Backend should now return the updated user object in response.data.user
+        const serverUser = response.data.user;
+
+        if (serverUser) {
+          // Use the new reconcile function to update or insert the user locally
+          try {
+            await reconcileUserAfterServerUpdate(serverUser); // <<< CALL THE NEW RECONCILE FUNCTION
+            console.log('✅ User data reconciled locally after password reset for:', serverUser.email);
+          } catch (localError) {
+            console.warn('⚠️ Failed to reconcile user data locally after password reset:', localError);
+            // Don't fail the entire process if local update fails,
+            // as the server is the source of truth for the password change.
+          }
+        } else {
+          console.warn('⚠️ Backend did not return user data after password reset.');
+        }
+
+        Alert.alert(
+          'Success!',
+          'Your password has been reset successfully. You can now log in with your new password.',
+          [
+            {
+              text: 'OK',
+              onPress: () => router.replace('/authentication/login')
+            }
+          ]
+        );
       }
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Error resetting password.';

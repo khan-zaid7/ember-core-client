@@ -10,7 +10,7 @@ export type AuthUser = {
   name: string;
   email: string;
   role: string;
-  phone_number: string;
+  phone_number: string | null;
 };
 
 type AuthContextType = {
@@ -18,6 +18,7 @@ type AuthContextType = {
   login: (user: AuthUser) => void;
   logout: () => void;
   refresh: () => Promise<void>;
+  updateUserId: (newUserId: string) => Promise<void>;
   loading: boolean;
 };
 
@@ -26,6 +27,7 @@ const AuthContext = createContext<AuthContextType>({
   login: () => {},
   logout: () => {},
   refresh: async () => {},
+  updateUserId: async () => {},
   loading: true,
 });
 
@@ -67,8 +69,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const updateUserId = async (newUserId: string) => {
+    try {
+      if (user) {
+        const updatedUser = { ...user, user_id: newUserId };
+        await saveSessionToDB(updatedUser);
+        setUser(updatedUser);
+        console.log(`✅ User ID updated in AuthContext: ${user.user_id} -> ${newUserId}`);
+      }
+    } catch (err) {
+      console.error('❌ Failed to update user ID in AuthContext:', err);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, refresh, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, refresh, updateUserId, loading }}>
       {children}
     </AuthContext.Provider>
   );

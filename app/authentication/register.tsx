@@ -16,12 +16,9 @@ import EmberLogo from '@/components/EmberLogo';
 import { FormInput } from '@/components/FormInput';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
-import api from '@/src/utils/axiosConfig';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import {
-  screenSize
-} from '@/src/utils/reponsive';
+import { screenSize } from '@/src/utils/reponsive';
 import { insertUserOffline } from '@/services/models/UserModel';
 
 export default function Register() {
@@ -68,7 +65,12 @@ export default function Register() {
       if (!value.trim()) error = 'Email is required.';
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = 'Invalid email.';
     }
-    if (key === 'password' && value.length < 6) error = 'Password too short.';
+    if (key === 'password') {
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
+      if (!value) error = 'Password is required.';
+      else if (!passwordRegex.test(value))
+        error = 'Password must be at least 6 characters, include uppercase, lowercase, and a number.';
+    }
     if (key === 'phone_number' && value && !/^[0-9\-\+]{9,15}$/.test(value))
       error = 'Invalid phone number.';
 
@@ -78,6 +80,7 @@ export default function Register() {
   const validateForm = () => {
     const { name, email, password, role, phone_number } = form;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
     const phoneRegex = /^[0-9\-\+]{9,15}$/;
     const allowedRoles = ['admin', 'fieldworker', 'volunteer', 'coordinator'];
 
@@ -91,8 +94,8 @@ export default function Register() {
       return false;
     }
 
-    if (password.length < 6) {
-      Alert.alert('Validation Error', 'Password must be at least 6 characters.');
+    if (!passwordRegex.test(password)) {
+      Alert.alert('Validation Error', 'Password must include uppercase, lowercase, number and be at least 6 characters.');
       return false;
     }
 
@@ -109,31 +112,11 @@ export default function Register() {
     return true;
   };
 
-  // const handleRegister = async () => {
-  //   if (!validateForm()) return;
-
-  //   setLoading(true); // show loader
-
-  //   try {
-  //     const response = await api.post('/register', form);
-  //     console.log('Registration successful:', response.data);
-  //     router.push({ pathname: '/login', params: { success: 'true' } });
-  //   } catch (error: any) {
-  //     console.log('FULL ERROR:', JSON.stringify(error, null, 2));
-  //     console.log('RESPONSE:', error?.response);
-  //     console.log('MESSAGE:', error?.message);
-  //     Alert.alert('Error', 'Registration failed. See logs.');
-  //   }
-  //   finally {
-  //     setLoading(false); // hide loader
-  //   }
-  // };
-
   const handleRegister = async () => {
     if (!validateForm()) return;
 
     try {
-      const user_id = insertUserOffline(form);
+      const user_id = await insertUserOffline(form);
       Alert.alert('Saved Offline', `User stored locally with ID:\n${user_id}`);
       router.push('/authentication/login');
     } catch (error: any) {
@@ -141,8 +124,6 @@ export default function Register() {
       Alert.alert('Error', error.message || 'Failed to save user offline');
     }
   };
-
-
 
   return (
     <>
@@ -264,7 +245,6 @@ export default function Register() {
                     </Text>
                   </View>
                 </View>
-
                 {/* Phone Number */}
                 <View style={{ marginBottom: 4 }}>
                   <FormInput
@@ -315,9 +295,5 @@ export default function Register() {
         </KeyboardAwareScrollView>
       </LinearGradient>
     </>
-
   );
-
-
-
 }

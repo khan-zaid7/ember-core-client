@@ -14,6 +14,7 @@ export const initDatabase = () => {
       reset_token TEXT,
       token_expire TEXT,
       created_at TEXT,
+      location TEXT,
       updated_at TEXT,
       image_url TEXT,
       synced INTEGER DEFAULT 0,
@@ -44,6 +45,8 @@ export const initDatabase = () => {
       updated_at TEXT,
       synced INTEGER DEFAULT 0,
       status TEXT,
+      barcode TEXT UNIQUE,
+      sku TEXT UNIQUE,
       sync_status_message TEXT
     );
 
@@ -111,6 +114,7 @@ export const initDatabase = () => {
       created_by TEXT,
     conflict_field TEXT,     
       latest_data TEXT,
+      allowed_strategies TEXT,
       updated_at TEXT     
     );
 
@@ -123,6 +127,22 @@ export const initDatabase = () => {
       phone_number TEXT,
       created_at TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      notification_id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL,
+      title TEXT,
+      message TEXT NOT NULL,
+      type TEXT,
+      entity_type TEXT,
+      entity_id TEXT,
+      received_at TEXT,
+      read INTEGER DEFAULT 0,
+      synced INTEGER DEFAULT 0,
+      sync_status_message TEXT,
+      archived INTEGER DEFAULT 0,
+      updated_at TEXT
+    );
   `);
 };
 
@@ -130,7 +150,6 @@ export const verifyTables = () => {
   const result = db.getAllSync<{ name: string }>(
     `SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;`
   );
-  console.log("🧩 Tables in DB:", result.map(row => row.name));
 };
 
 export const resetDatabase = () => {
@@ -144,6 +163,7 @@ export const resetDatabase = () => {
     'alerts',
     'sync_queue',
     'sessions',
+    'notifications',
   ];
 
   db.execSync(

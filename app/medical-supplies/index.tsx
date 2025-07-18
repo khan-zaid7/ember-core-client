@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, FlatList, StyleSheet } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, TextInput, FlatList, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native'; // ✅ added
 import DashboardHeader from '@/components/Header';
 import { Footer, useFooterNavigation } from '@/components/Footer';
 import { getAllSupplies } from '@/services/models/SuppliesModel';
 import SettingsComponent from '@/components/SettingsComponent';
+import { useAuth } from '@/context/AuthContext';
 
 type SupplyItem = {
   id: string;
@@ -21,15 +23,18 @@ type SupplyItem = {
 
 export default function MedicalSuppliesList() {
   const router = useRouter();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const { activeTab, handleTabPress } = useFooterNavigation('home', () => setSettingsModalVisible(true));
   const [supplies, setSupplies] = useState<SupplyItem[]>([]);
 
-  useEffect(() => {
-    const loadSupplies = () => {
+  // ✅ Load data on screen focus
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.user_id) return;
       try {
-        const data = getAllSupplies().map((item) => ({
+        const data = getAllSupplies(user.user_id).map((item) => ({
           id: item.supply_id,
           itemName: item.item_name,
           quantity: item.quantity,
@@ -43,9 +48,8 @@ export default function MedicalSuppliesList() {
       } catch (err) {
         console.error('Failed to load supplies:', err);
       }
-    };
-    loadSupplies();
-  }, []);
+    }, [user?.user_id])
+  );
 
   const filteredSupplies = supplies.filter(supply =>
     supply.itemName.toLowerCase().includes(search.toLowerCase()) ||
@@ -158,4 +162,4 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
   },
-}); 
+});

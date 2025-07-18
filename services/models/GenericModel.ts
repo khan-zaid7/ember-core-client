@@ -16,9 +16,11 @@ export const markEntitySynced = (
   entity_id: string,
   statusMessage = 'Synced successfully'
 ) => {
-  const meta = tableMetadata[entity_type];
+  const normalizedType = entity_type.toLowerCase().trim();
+  const meta = tableMetadata[normalizedType];
 
   if (!meta) {
+    console.warn(`⚠️ Unknown entity_type: ${entity_type}`);
     throw new Error(`Unknown entity_type: ${entity_type}`);
   }
 

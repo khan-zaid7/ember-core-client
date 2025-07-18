@@ -13,12 +13,25 @@ import EmberLogo from '@/components/EmberLogo';
 import { FormInput } from '@/components/FormInput';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import SuccessAlert from '@/components/SuccessAlert';
+import { db } from '@/services/db'; // Still needed for local user check in error handling (in catch block)
+import NetInfo from '@react-native-community/netinfo';
+import { useEffect } from 'react';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+
+  // Check network connectivity
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsOnline(!!(state.isConnected && state.isInternetReachable !== false));
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const validateEmail = (value: string) => {
     const re = /\S+@\S+\.\S+/;
@@ -31,11 +44,20 @@ export default function ForgotPassword() {
       return;
     }
 
+    // Keep this online check (as discussed, good for UX)
+    if (!isOnline) {
+      setError('You are offline. Forgot password requires internet access.');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setSuccess(false);
 
     try {
+
+
+      // Proceed with normal forgot password flow
       const response = await api.post('/forgot-password', { email });
 
       console.log('✅ OTP sent for email:', email);
@@ -46,8 +68,31 @@ export default function ForgotPassword() {
         router.push({ pathname: '/authentication/password-reset/verify-otp', params: { email } });
       }, 1500);
     } catch (err: any) {
-      const message =
-        err?.response?.data?.message || 'Something went wrong while sending OTP.';
+      let message = err?.response?.data?.message || 'Something went wrong while sending OTP.';
+
+      // --- This is the ONLY place a local user/sync status check happens now ---
+      const normalizedEmail = email.trim().toLowerCase();
+      const localUser = db.getFirstSync<any>(
+        `SELECT user_id, synced FROM users WHERE email = ?`,
+        [normalizedEmail]
+      );
+
+      // Check for common "user not found" messages from backend
+      const isUserNotFoundFromBackend = message.toLowerCase().includes('user not found') ||
+                                       message.toLowerCase().includes('email not registered') ||
+                                       // Add more specific messages if your backend sends them, e.g., for not found in Auth
+                                       (err?.response?.status === 404); // Also check status code if applicable
+
+      if (isUserNotFoundFromBackend && localUser && localUser.synced === 0) {
+        // If server says user not found, but we have an unsynced local user
+        message = 'This account exists only on your device and has not been synced to the server. Please log in using your original password or contact support for assistance.';
+      } else if (!err.response) {
+        // This is likely a network error if err.response is undefined (despite the initial isOnline check,
+        // transient network issues can still occur during the request)
+        message = 'Network Error: Could not connect to the server. Please check your internet connection.';
+      }
+      // --- End of specific local check and refined error messaging ---
+
       setError(message);
       console.log('❌ OTP error:', message);
     } finally {
