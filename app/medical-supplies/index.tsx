@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, TextInput, FlatList, StyleSheet } from 'r
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native'; // ✅ added
+import { useFocusEffect } from '@react-navigation/native'; 
 import DashboardHeader from '@/components/Header';
 import { Footer, useFooterNavigation } from '@/components/Footer';
 import { getAllSupplies } from '@/services/models/SuppliesModel';
@@ -34,7 +34,7 @@ export default function MedicalSuppliesList() {
     useCallback(() => {
       if (!user?.user_id) return;
       try {
-        const data = getAllSupplies(user.user_id).map((item) => ({
+        const data = getAllSupplies().map((item) => ({
           id: item.supply_id,
           itemName: item.item_name,
           quantity: item.quantity,
