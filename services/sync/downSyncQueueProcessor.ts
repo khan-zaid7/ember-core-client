@@ -12,7 +12,7 @@ import { insertNotification } from '../models/NotificationModel';
 import { showNotification } from '@/utils/notificationManager';
 
 
-const API_BASE_URL = 'http://172.20.10.4:5000/api/down-sync';
+const API_BASE_URL = 'https://ember-core-server.onrender.com/api/down-sync';
 
 const downsyncAxiosInstance = axios.create({
     baseURL: API_BASE_URL,

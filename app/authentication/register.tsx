@@ -81,7 +81,7 @@ export default function Register() {
     const { name, email, password, role, phone_number } = form;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
-    const phoneRegex = /^[0-9\-\+]{9,15}$/;
+    const phoneRegex = /^[0-9\-\+]{9,10}$/;
     const allowedRoles = ['admin', 'fieldworker', 'volunteer', 'coordinator'];
 
     if (!name.trim() || !email.trim() || !password || !role) {
@@ -249,17 +249,23 @@ export default function Register() {
                 <View style={{ marginBottom: 4 }}>
                   <FormInput
                     value={form.phone_number}
-                    onChangeText={(val) => handleChange('phone_number', val)}
+                    onChangeText={(val) => {
+                      const cleaned = val.replace(/[^0-9]/g, ''); // remove non-numeric chars
+                      if (cleaned.length <= 10) {
+                        handleChange('phone_number', cleaned);
+                      }
+                    }}
                     placeholder="Phone Number (Optional)"
                     keyboardType="phone-pad"
                     theme="light"
                   />
-                  <View style={{ minHeight: 18, marginTop: 2 }}>
+                   <View style={{ minHeight: 18, marginTop: 2 }}>
                     <Text style={{ color: '#ef4444', fontSize: 12 }}>
                       {errors.phone_number || ' '}
                     </Text>
                   </View>
                 </View>
+
                 {/* Sign Up Button */}
                 <TouchableOpacity
                   onPress={handleRegister}

@@ -7,7 +7,7 @@ const getStoredToken = (): string | null => {
 
 const api = axios.create({
   // baseURL: 'http://localhost:5000/api',
-  baseURL: 'http://172.20.10.4:5000/api',
+  baseURL: 'https://ember-core-server.onrender.com/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
