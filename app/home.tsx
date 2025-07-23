@@ -70,12 +70,6 @@ const roleActions: Record<string, Array<{ path: string; title: string; descripti
       description: 'Manage all tasks and create new ones',
       icon: <MaterialIcons name="dashboard" size={48} color="#f97316" />,
     },
-    {
-      path: '/users',
-      title: 'Manage Users',
-      description: 'View and manage users',
-      icon: <MaterialIcons name="group" size={48} color="#f97316" />,
-    },
   ],
 };
 
