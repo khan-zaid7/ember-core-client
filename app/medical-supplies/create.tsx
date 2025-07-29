@@ -166,7 +166,7 @@ export default function RegisterSupply() {
         title="Register Supplies"
         showSettings={true}
         onSettingsPress={() => setSettingsModalVisible(true)}
-        onBackPress={() => router.back()}
+        onBackPress={() => router.replace('/medical-supplies')}
       />
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         <View style={{ flex: 1, alignItems: 'center', paddingBottom: 40, minHeight: 600 }}>

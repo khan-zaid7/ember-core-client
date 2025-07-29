@@ -63,7 +63,7 @@ export default function MedicalSuppliesList() {
         title="Medical Supplies"
         showSettings={true}
         onSettingsPress={() => setSettingsModalVisible(true)}
-        onBackPress={() => router.back()}
+        onBackPress={() => router.replace('/home')}
       />
       {/* Search Bar */}
       <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
