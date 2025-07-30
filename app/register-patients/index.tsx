@@ -63,7 +63,7 @@ export default function UsersList() {
         title="Patients"
         showSettings
         onSettingsPress={() => setSettingsModalVisible(true)}
-        onBackPress={() => router.back()}
+        onBackPress={() => router.replace('/home')}
       />
 
       <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>

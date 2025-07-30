@@ -170,6 +170,7 @@ export default function RegisterOffline() {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
       setForm(initialForm);
+      router.replace("/register-patients");
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Something went wrong');
     }
